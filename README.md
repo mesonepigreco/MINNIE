@@ -9,3 +9,6 @@ The aim of the project is to make it interfaced with tools like ASE (Atomic Simu
 to provide a fast and reliable calculator for energy, forces and stress tensors of condensed matter system as well as big organic molecules 
 
 ANNE is a free software, and comes as it is, without any warranty.
+
+THIS IS AN EXPERIMENTAL VERSION, DO NOT USE IT IF YOU DO NOT KNOW WHAT YOU ARE DOING
+
