@@ -39,7 +39,7 @@ title("Force test")
 xlabel(r"X coord [$\AA$]")
 ylabel(r"force [eV/$\AA$]")
 
-plot(data[:,0], data[:, 1], label = "analitic force")
+plot(data[:,0], data[:, 2], label = "analitic force")
 plot(data[:,0], numeric_f, label = "numeric force")
 legend()
 tight_layout()
