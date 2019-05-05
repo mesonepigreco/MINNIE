@@ -28,7 +28,7 @@ ANNIE on a system where you do not have root privileges, therefore you must comp
 To make the program callable from outside the bin directory, you can add an alias to your .bashrc:
 
 ```bash
-echo "alias ANNIE=bin/ANNIE.exe" >> $HOME/.bashrc
+echo "alias ANNIE=`pwd`/bin/ANNIE.exe" >> $HOME/.bashrc
 ```
 
 NOTE: The software is still not complete. It will not generate the ANNIE executable when compiled, but just some
