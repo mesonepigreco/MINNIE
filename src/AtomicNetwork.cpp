@@ -1,6 +1,7 @@
 #include "AtomicNetwork.hpp"
 #include <math.h>
 
+// A debugging flag
 #define AN_DEB 0
 
 double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny, int Nz, double ** grad_bias, double ** grad_sinapsis) {
@@ -461,3 +462,42 @@ NeuralNetwork * AtomicNetwork::GetNNFromElement(int element_type) {
     exit(EXIT_FAILURE); 
 }
 
+
+
+
+double AtomicNetwork::GetLossGradient(Ensemble * training_set, double ** grad_biases = NULL, double ** grad_sinapsis = NULL, int offset = 0, int n_configs = -1) {
+    // Check the parameters
+    int n_conf = n_configs;
+    if (offset >= training_set->GetNConfigs()) {
+        cerr << "Error in function GetLossGradient: the offset " << offset << endl; 
+        cerr << "cannot exceed the number of configurations " << training_set->GetNConfigs() << endl;
+        cerr << "FILE: " << __FILE__ << " LINE: " << __LINE__ << endl;
+        throw "Error"; 
+    } else if (offset < 0) {
+        cerr << "Error, the offset cannot be negative." << endl;
+        cerr << "FILE: " << __FILE__ << " LINE: " << __LINE__ << endl; 
+        throw "Error";
+    }
+
+    if (n_configs < 1) {
+        n_conf = training_set->GetNConfigs();
+    }
+
+    if (n_conf + offset >= training_set->GetNConfigs()) {
+        cerr << "Error in function GetLossGradient: the selected number of configurations " << n_conf << " + " << offset << endl; 
+        cerr << "cannot exceed the total number of configurations " << training_set->GetNConfigs() << endl;
+        cerr << "FILE: " << __FILE__ << " LINE: " << __LINE__ << endl;
+        throw "Error"; 
+    } 
+
+
+    double loss = 0;
+    double energy = 0;
+    Atoms * config;
+    for (int i = 0; i < n_conf; ++i) {
+        // Get the current atomic configuration from the ensemble
+        training_set->GetConfig(offset + i, config);
+
+        // TODO: TO be continued
+    }
+}

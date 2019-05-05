@@ -93,6 +93,47 @@ public:
 
 
     /*
+     * Train the neural network with the given ensemble.
+     *
+     * Parameters
+     * ----------
+     *      training_set : 
+     *          The ensemble of the training set. It must contain also energy and forces
+     *      Nx, Ny, Nz : 
+     *          The supercell dimension
+     *      method : 
+     *          The method to be used in the training. Possible choice are
+     *              - "sd" -> Steepest descent (stochastic)
+     *              - "mc" -> Simulated annealing (Monte Carlo)
+     *      step : 
+     *          The step for the minimization algorithm.
+     *      N_steps :
+     *          The maximum number of iterations for the algorithm
+     *      use_lmin :
+     *          If True (default) the step will be optimized during the optimization.
+     */
+    void TrainNetwork(Ensemble * training_set, int Nx, int Ny, int Nz, string method, double step, int N_steps, bool use_lmin = true);
+
+
+    /*
+     * Compute the Loss and its gradient with respect to the parameters of the network
+     *
+     * Parameters
+     * ----------
+     *      training_set : 
+     *          The ensemble training set.
+     *      grad_biases : 
+     *          The output gradient of the biases of the network
+     *      grad_sinapsis : 
+     *          The output gradient of the sinapsis
+     *      offset :
+     *          The index of the first configuration (by default 0, used for stochastic descent)
+     *      n_configs : 
+     *          The number of configurations to be used. If negative the whole ensemble is used.
+     */ 
+    double GetLossGradient(Ensemble * training_set, double ** grad_biases = NULL, double ** grad_sinapsis = NULL, int offset = 0, int n_configs = -1);
+
+    /*
      * Save/Load the current network in a cfg file.
      * You need to provide the prefix to the network. 
      * The result will be:
