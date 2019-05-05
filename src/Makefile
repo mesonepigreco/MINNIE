@@ -1,8 +1,3 @@
-CPP=g++ --std=c++11 -O3
-CFLAGS=$(pkg-config --cflags libconfig++)
-LIBS=`pkg-config --libs libconfig++` -lm
-GSLFLAGS = -lgsl -lgslcblas
-BOOSTFLAGS = -lboost_system -lboost_filesystem
 
 all: NN.exe test_sd_deriv.exe test_ensemble.exe test_read_atoms.exe test_nn_prediction.exe
 

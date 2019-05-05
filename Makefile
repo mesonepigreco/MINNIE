@@ -1,9 +1,22 @@
+include make.inc
+export
+SUBDIRS = src
 
-all: src
+
+all : build
+
+.PHONY: all build subdirs $(SUBDIRS) clean
+
+subdirs: $(SUBDIRS)
+
+$(SUBDIRS):
+	$(MAKE) -C $@
+
+
+build: subdirs
 	mkdir -p bin
 	cp src/*.exe bin/
 
-src:
-	cd src
-	$(MAKE) -C $@
+clean:
+	rm -f bin/*.o bin/*.exe src/*.o src/*.exe
 
