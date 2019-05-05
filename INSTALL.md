@@ -14,8 +14,9 @@ Look for the libraries in the package-manager of your distribution with the '-de
 ## Compiling
 
 If you correctly installed all the libraries and your system is "standard", then all you need to do is:
-
+```bash
 make 
+```
 
 The software will be compiled and placed into the bin folder. If something goes wrong, and you are shure to have
 correctly installed everything, you can try to edit the make.inc file.
