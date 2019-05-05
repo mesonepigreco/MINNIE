@@ -465,7 +465,7 @@ NeuralNetwork * AtomicNetwork::GetNNFromElement(int element_type) {
 
 
 
-double AtomicNetwork::GetLossGradient(Ensemble * training_set, double ** grad_biases = NULL, double ** grad_sinapsis = NULL, int offset = 0, int n_configs = -1) {
+double AtomicNetwork::GetLossGradient(Ensemble * training_set, int Nx, int Ny, int Nz, double weight_energy = 1, double weight_forces = 0, double ** grad_biases = NULL, double ** grad_sinapsis = NULL, int offset = 0, int n_configs = -1) {
     // Check the parameters
     int n_conf = n_configs;
     if (offset >= training_set->GetNConfigs()) {
@@ -493,11 +493,83 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double ** grad_bi
 
     double loss = 0;
     double energy = 0;
+    double * forces = NULL;
     Atoms * config;
     for (int i = 0; i < n_conf; ++i) {
         // Get the current atomic configuration from the ensemble
         training_set->GetConfig(offset + i, config);
 
-        // TODO: TO be continued
+        forces = new double[config->GetNAtoms()];
+        energy = GetEnergy(config, forces, Nx, Ny, Nz, grad_biases, grad_sinapsis);
+
+        // Get the loss function
+        loss += weight_energy *(energy - config->energy)*(energy - config->energy) / (config->GetNAtoms() * config->GetNAtoms());
+
+        for (int j = 0; j < config->GetNAtoms() * 3; ++j) {
+            loss += weight_forces * (forces[j] - config->forces[j])* (forces[j] - config->forces[j]);
+        }
+
+        delete[] forces;
+    }
+    return loss;
+}
+
+
+void AtomicNetwork::TrainNetwork(Ensemble * training_set, int Nx, int Ny, int Nz, string method, double step, int N_steps, bool use_lmin = true) {
+
+
+    // Allocate the gradient biases and sinapsis for the whole atomic network 
+    int n_networks = atomic_network.size();
+    int n_biases_max = -1, n_sinapsis_max = -1;
+    int tmp;
+
+    double ** grad_biases = new double*[n_networks];
+    double ** grad_sinapsis = new double *[n_networks];
+
+    for (int i = 0; i < n_networks; ++i) {
+        n_biases_max = atomic_network.at(i)->get_nbiases();
+        n_sinapsis_max = atomic_network.at(i)->get_nsinapsis();
+        grad_biases[i] = new double[n_biases_max];
+        grad_sinapsis[i] = new double[n_sinapsis_max];
+    }
+
+
+    // Here the training section  
+    double loss;
+    double weight_energy, weight_force;
+
+    // Check the minimization method
+    if (method == AN_TRAINSD) {
+        weight_energy = 1;
+        weight_force = 0;
+    }
+    else if (method == AN_TRAINMC) {
+        weight_energy = 0;
+        weight_force = 1;
+    } else {
+        cerr << "Error, the ginven training method is unknown: " << method.c_str() << endl;
+        cerr << "FILE:" << __FILE__ << " LINE: " << __LINE__ << endl;
+        throw "";
+    }
+
+    for (int ka = 0; ka < N_steps; ++ka) {
+        
+        // Clean the gradient 
+        for (int i = 0; i < n_networks; ++i) {
+            for (int j = 0; j < atomic_network.at(i)->get_nbiases(); ++j)
+                grad_biases[i][j] = 0;
+
+            for (int j = 0; j < atomic_network.at(i)->get_nsinapsis(); ++j)
+                grad_sinapsis[i][j] = 0;
+        }
+
+        loss = GetLossGradient(training_set, Nx, Ny, Nz, weight_energy, weight_force, grad_biases, grad_sinapsis);
+
+        // Perform the optimization step
+        if (method == AN_TRAINSD) {
+            for (int i = 0; i < n_networks; ++i) {
+                //  TODO: PERFORM THE SD STEP
+            }
+        }
     }
 }

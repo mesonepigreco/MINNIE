@@ -19,6 +19,9 @@ private:
 public:
   int * types;
   double * coords;
+  double * forces;
+  double energy;
+  bool has_energy_force;
 
   // The unit cell
   double unit_cell[9];
@@ -54,6 +57,14 @@ public:
    * 
    */
   void GenerateSupercell(int NX, int NY, int NZ, Atoms * &target);
+
+
+  // Setup the energy and the force
+  /*
+   * Creates the force for the atom and copies forces. It sets up the has_energy_force variable
+   * also.
+   */
+  void SetEnergyForce(double energy, const double * force);
 };
 
 #endif

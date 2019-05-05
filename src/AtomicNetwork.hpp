@@ -26,6 +26,10 @@
 #define AN_ENVIRON "AtomicNetwork"
 #define AN_TYPELIST "types"
 
+// The train methods
+#define AN_TRAINSD "sd"
+#define AN_TRAINMC "mc"
+
 class AtomicNetwork {
 private:
     vector<NeuralNetwork *> atomic_network;
@@ -122,6 +126,12 @@ public:
      * ----------
      *      training_set : 
      *          The ensemble training set.
+     *      Nx, Ny, Nz : 
+     *          The supercell dimension
+     *      weight_energy : 
+     *          How much the loss function is weighted on the total energy
+     *      weight_forces :
+     *          How much the loss function is weighted on the forces.
      *      grad_biases : 
      *          The output gradient of the biases of the network
      *      grad_sinapsis : 
@@ -131,7 +141,7 @@ public:
      *      n_configs : 
      *          The number of configurations to be used. If negative the whole ensemble is used.
      */ 
-    double GetLossGradient(Ensemble * training_set, double ** grad_biases = NULL, double ** grad_sinapsis = NULL, int offset = 0, int n_configs = -1);
+    double GetLossGradient(Ensemble * training_set, int Nx, int Ny, int Nz, double weight_energy = 1, double weight_forces = 0, double ** grad_biases = NULL, double ** grad_sinapsis = NULL, int offset = 0, int n_configs = -1);
 
     /*
      * Save/Load the current network in a cfg file.

@@ -39,6 +39,9 @@ Atoms::Atoms(int N) {
   // Initialize the types and coords
   coords = (double*) malloc( sizeof(double) * 3 * N);
   types = (int*) calloc(sizeof(int), N);
+
+  has_energy_force = false;
+  forces = NULL;
 }
 
 Atoms::Atoms(string scf_file) {
@@ -59,6 +62,10 @@ Atoms::~Atoms(){
   // Free memory
   free(coords);
   free(types);
+
+  if (forces) {
+    delete[] forces;
+  }
 }
 
 
@@ -195,4 +202,16 @@ void Atoms::PrintCoords(void) {
       "   " << coords[3*i + 2] << endl;
   }
   cout << endl;
+}
+
+void Atoms::SetEnergyForce(double en, const double * forc) {
+  // Allocate the memory for the forces
+  if (forces == NULL) {
+    forces = new double[GetNAtoms()];
+  }
+
+  energy = en;
+  for (int i = 0; i < GetNAtoms() * 3; ++i) {
+    forces[i] = forc[i];
+  }
 }
