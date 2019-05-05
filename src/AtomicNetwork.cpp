@@ -1,6 +1,8 @@
 #include "AtomicNetwork.hpp"
 #include <math.h>
 
+#define AN_DEB 0
+
 double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny, int Nz, double ** grad_bias, double ** grad_sinapsis) {
     int N_atms = coords->GetNAtoms();
     int N_sym = symm_f->GetTotalNSym(N_types);
@@ -45,12 +47,19 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
     for (int i = 0; i < N_atms; ++i) { // Parallelizable
         first_layer = new double[N_lim];
 
+        if (AN_DEB) {     
+            for (int k = 0; k < N_sym; ++k) 
+                printf("# SYM F [%d] of atom %d is : %.8e\n", k, i, symm_fynctions[N_sym*i + k]);
+        }
+
         // Apply the PCA representation
         for (int j = 0; j < N_lim; ++j) {
             first_layer[j] = 0;
             for (int k = 0; k < N_sym; ++k) 
-                first_layer[j] += eigvects[N_sym*k + j] * symm_fynctions[N_sym*i + k];
+                first_layer[j] += eigvects[N_sym*j + k] * symm_fynctions[N_sym*i + k];
             first_layer[j] /= sqrt(eigvals[j]);
+
+            if (AN_DEB) printf("# First layer [%d] of atom %d is : %.8e\n", j, i, first_layer[j]);
         }
 
         // Send into the neural network
@@ -126,13 +135,14 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
                     for (int k = 0; k  < N_lim; ++k) {
                         dS_dX = 0;
                         for (int n = 0; n < N_sym; ++n) {
-                           dS_dX += eigvects[N_lim*n + k] * dG_dX[N_sym * j + n];
+                           dS_dX += eigvects[N_lim*k + n] * dG_dX[N_sym * j + n];
                         }
                         dS_dX /= sqrt(eigvals[k]);
 
                         //cout << "AT " << j << "sqrteig:" << sqrt(eigvals[j]) << ", " << "dSdX:" << dS_dX << " ADDING:" << tmp_forces[N_lim*j + k] * dS_dX << endl;
                         // Get the force
                         forces[3*i + x] += tmp_forces[N_lim*j + k] * dS_dX;
+
                     }
                 }
                 //cout << "FORCE " << i << ", " << x << " AFTER:" << forces[3*i +x] << endl;
