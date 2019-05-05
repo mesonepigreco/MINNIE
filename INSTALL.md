@@ -29,7 +29,9 @@ To make the program callable from outside the bin directory, you can add an alia
 
 ```bash
 echo "alias ANNIE=`pwd`/bin/ANNIE.exe" >> $HOME/.bashrc
+source $HOME/.bashrc
 ```
+This command must be executed inside the ANNIE main directory.
 
 NOTE: The software is still not complete. It will not generate the ANNIE executable when compiled, but just some
 debugging stuff.
