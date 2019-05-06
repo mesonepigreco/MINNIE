@@ -1062,3 +1062,7 @@ void NeuralNetwork::set_check_accept_rate(int s) {check_accept_rate = s;}
 
 double NeuralNetwork::get_beta_direction(){return beta_direction;}
 int NeuralNetwork::get_accept_rate(){return accept_rate;}
+
+
+void NeuralNetwork::set_biases_value(int index, double value) {biases.at(index) = value;}
+void NeuralNetwork::set_sinapsis_value(int index, double value) {sinapsis.at(index) = value;}

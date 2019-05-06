@@ -217,6 +217,10 @@ public:
   double get_beta_direction();
   int get_accept_rate();
 
+  // This sets and loads the sinapsis/biases value by the positional index.
+  void set_biases_value(int index, double value);
+  void set_sinapsis_value(int index, double value);  
+
   // Save the network to a file for a successive loading
   void Save(string filename);
 

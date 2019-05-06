@@ -4,7 +4,7 @@
 // A debugging flag
 #define AN_DEB 0
 
-double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny, int Nz, double ** grad_bias, double ** grad_sinapsis) {
+double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny, int Nz, double ** grad_bias, double ** grad_sinapsis, double target_energy = 1) {
     int N_atms = coords->GetNAtoms();
     int N_sym = symm_f->GetTotalNSym(N_types);
     double* symm_fynctions = new double [N_sym * N_atms];
@@ -68,27 +68,38 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
         GetNNFromElement(type)->PredictFeatures(1, first_layer, &E_i);
         E_tot += E_i;
 
-        // Backpropagation if requested
+        // If we need only the force, we can compute them
         if (back_propagation) {
-            // Check if we need the whole gradient
-            if (grad_bias) {
-                dumb = 1;
-                atomic_network.at(type)->StepDescent(&dumb, tmp_biases[type], tmp_sinapsis[type], tmp_forces + N_lim*i);
-                for (int k = 0; k < atomic_network.at(type)->get_nbiases(); ++k)
-                    grad_bias[type][k] += tmp_biases[type][k];
-                for (int k = 0; k < atomic_network.at(type)->get_nsinapsis(); ++k)
-                    grad_sinapsis[type][k] += tmp_sinapsis[type][k];
-                for (int k = 0; k < N_lim; ++k) 
-                    tmp_forces[i*N_lim + k] *= -1; // Convert to the forces
-            }
-            else {
-                atomic_network.at(type)->GetForces(tmp_forces + N_lim*i);
-            }
-
+            GetNNFromElement(type)->GetForces(tmp_forces + N_lim*i);
         }
-
-        delete[] first_layer;
     }
+
+    // Backpropagation for the gradient
+    // We need to rerun it, as the total energy is required to get the proper gradient of the sinapsis
+    if (grad_bias) {
+        for (int i = 0; i < N_atms; ++i) {
+            type = coords->types[i];
+
+            // Prepare the first layer once again
+            for (int j = 0; j < N_lim; ++j) {
+                first_layer[j] = 0;
+                for (int k = 0; k < N_sym; ++k) 
+                    first_layer[j] += eigvects[N_sym*j + k] * symm_fynctions[N_sym*i + k];
+                first_layer[j] /= sqrt(eigvals[j]);
+            }
+
+            // Perform the Forward Propagation
+            GetNNFromElement(type)->PredictFeatures(1, first_layer, &E_i);
+
+            // Set the last node to the gradient of the loss function with respect to the atomic energy
+            dumb = 2 * (E_tot - target_energy);
+
+            // Backpropagate the last node to get the gradient of biases and sinapsis
+            GetNNFromElement(type)->StepDescent(&dumb, grad_bias[type], grad_sinapsis[type], NULL);
+        }
+    }
+
+    delete[] first_layer;
 
 
 
@@ -568,7 +579,7 @@ void AtomicNetwork::TrainNetwork(Ensemble * training_set, int Nx, int Ny, int Nz
         // Perform the optimization step
         if (method == AN_TRAINSD) {
             for (int i = 0; i < n_networks; ++i) {
-                //  TODO: PERFORM THE SD STEP
+
             }
         }
     }
