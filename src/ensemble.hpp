@@ -87,5 +87,8 @@ public:
 
     //Get the force
     double GetForce(int config_id, int atom_id, int coord_id);
+
+    // Get the energy
+    double GetEnergy(int config_id);
 };
 #endif

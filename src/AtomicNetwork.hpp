@@ -33,8 +33,6 @@
 class AtomicNetwork {
 private:
     vector<NeuralNetwork *> atomic_network;
-    vector<int> atomic_types;
-    int N_types;
     // Symmetric functions
     SymmetricFunctions * symm_f;
 
@@ -47,6 +45,10 @@ private:
 
 
 public:
+
+    int N_types;
+    vector<int> atomic_types;
+    
     /*
      * Constructor method.
      */
@@ -93,7 +95,7 @@ public:
      * 
      * The double pointer refers to an array of gradients, one per each atomic neural network.
      */
-    double GetEnergy(Atoms * coords, double * forces = NULL, int Nx = 1, int Ny = 1, int Nz = 1, double ** grad_biases = NULL, double ** grad_sinapsis = NULL);
+    double GetEnergy(Atoms * coords, double * forces = NULL, int Nx = 1, int Ny = 1, int Nz = 1, double ** grad_biases = NULL, double ** grad_sinapsis = NULL, double target_energy = 1);
 
 
     /*

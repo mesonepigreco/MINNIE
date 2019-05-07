@@ -4,7 +4,7 @@
 // A debugging flag
 #define AN_DEB 0
 
-double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny, int Nz, double ** grad_bias, double ** grad_sinapsis, double target_energy = 1) {
+double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny, int Nz, double ** grad_bias, double ** grad_sinapsis, double target_energy ) {
     int N_atms = coords->GetNAtoms();
     int N_sym = symm_f->GetTotalNSym(N_types);
     double* symm_fynctions = new double [N_sym * N_atms];
@@ -92,7 +92,7 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
             GetNNFromElement(type)->PredictFeatures(1, first_layer, &E_i);
 
             // Set the last node to the gradient of the loss function with respect to the atomic energy
-            dumb = 2 * (E_tot - target_energy);
+            dumb = 2 * (E_tot - target_energy) / N_atms;
 
             // Backpropagate the last node to get the gradient of biases and sinapsis
             GetNNFromElement(type)->StepDescent(&dumb, grad_bias[type], grad_sinapsis[type], NULL);
@@ -476,7 +476,7 @@ NeuralNetwork * AtomicNetwork::GetNNFromElement(int element_type) {
 
 
 
-double AtomicNetwork::GetLossGradient(Ensemble * training_set, int Nx, int Ny, int Nz, double weight_energy = 1, double weight_forces = 0, double ** grad_biases = NULL, double ** grad_sinapsis = NULL, int offset = 0, int n_configs = -1) {
+double AtomicNetwork::GetLossGradient(Ensemble * training_set, int Nx, int Ny, int Nz, double weight_energy, double weight_forces, double ** grad_biases, double ** grad_sinapsis, int offset, int n_configs) {
     // Check the parameters
     int n_conf = n_configs;
     if (offset >= training_set->GetNConfigs()) {
@@ -511,13 +511,13 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, int Nx, int Ny, i
         training_set->GetConfig(offset + i, config);
 
         forces = new double[config->GetNAtoms()];
-        energy = GetEnergy(config, forces, Nx, Ny, Nz, grad_biases, grad_sinapsis);
+        energy = GetEnergy(config, forces, Nx, Ny, Nz, grad_biases, grad_sinapsis, training_set->GetEnergy(i));
 
         // Get the loss function
-        loss += weight_energy *(energy - config->energy)*(energy - config->energy) / (config->GetNAtoms() * config->GetNAtoms());
+        loss += weight_energy *(energy - training_set->GetEnergy(i) )*(energy - training_set->GetEnergy(i)) / (config->GetNAtoms());
 
         for (int j = 0; j < config->GetNAtoms() * 3; ++j) {
-            loss += weight_forces * (forces[j] - config->forces[j])* (forces[j] - config->forces[j]);
+            loss += weight_forces * (forces[j] - training_set->GetForce(i, j/3, j%3))* (forces[j] - training_set->GetForce(i, j/3, j%3));
         }
 
         delete[] forces;
@@ -526,8 +526,7 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, int Nx, int Ny, i
 }
 
 
-void AtomicNetwork::TrainNetwork(Ensemble * training_set, int Nx, int Ny, int Nz, string method, double step, int N_steps, bool use_lmin = true) {
-
+void AtomicNetwork::TrainNetwork(Ensemble * training_set, int Nx, int Ny, int Nz, string method, double step, int N_steps, bool use_lmin) {
 
     // Allocate the gradient biases and sinapsis for the whole atomic network 
     int n_networks = atomic_network.size();
@@ -548,6 +547,8 @@ void AtomicNetwork::TrainNetwork(Ensemble * training_set, int Nx, int Ny, int Nz
     // Here the training section  
     double loss;
     double weight_energy, weight_force;
+
+    double total_gradient = 0;
 
     // Check the minimization method
     if (method == AN_TRAINSD) {
@@ -579,8 +580,34 @@ void AtomicNetwork::TrainNetwork(Ensemble * training_set, int Nx, int Ny, int Nz
         // Perform the optimization step
         if (method == AN_TRAINSD) {
             for (int i = 0; i < n_networks; ++i) {
-
+                for (int j = 0; j < atomic_network.at(i)->get_nbiases(); ++j)  
+                    atomic_network.at(i)->update_biases_value(j, - grad_biases[i][j] * step);
+                
+                for (int j = 0; j < atomic_network.at(i)->get_nsinapsis(); ++j)
+                    atomic_network.at(i)->update_sinapsis_value(j, - grad_sinapsis[i][j] *step);
             }
+        } else {
+            cerr << "Method " << method.c_str() << " not yet implemented." << endl;
+            exit(EXIT_FAILURE);
         }
+
+        // Get the total gradient
+        total_gradient = 0;
+        for (int i = 0; i < n_networks; ++i) {
+            for (int j = 0; j < atomic_network.at(i)->get_nbiases(); ++j)  
+                total_gradient +=  grad_biases[i][j] * grad_biases[i][j];
+            
+            for (int j = 0; j < atomic_network.at(i)->get_nsinapsis(); ++j)
+                total_gradient +=  grad_sinapsis[i][j] * grad_sinapsis[i][j];
+        }
+
+        // Print the info
+        cout << " ===== STEP " << ka <<  " =====" << endl;
+        cout << endl;
+        cout << " Current Loss Function: " << scientific << loss << endl;
+        cout << " Total gradient: " << total_gradient << endl;
+        cout << endl;
+        cout << fixed;
+        
     }
 }

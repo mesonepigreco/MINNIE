@@ -19,9 +19,9 @@ private:
 public:
   int * types;
   double * coords;
-  double * forces;
-  double energy;
-  bool has_energy_force;
+  //double * forces;
+  //double energy;
+  //bool has_energy_force;
 
   // The unit cell
   double unit_cell[9];
@@ -64,7 +64,7 @@ public:
    * Creates the force for the atom and copies forces. It sets up the has_energy_force variable
    * also.
    */
-  void SetEnergyForce(double energy, const double * force);
+  //void SetEnergyForce(double energy, const double * force);
 };
 
 #endif

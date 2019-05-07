@@ -1064,5 +1064,13 @@ double NeuralNetwork::get_beta_direction(){return beta_direction;}
 int NeuralNetwork::get_accept_rate(){return accept_rate;}
 
 
+// Manipulate the network features
 void NeuralNetwork::set_biases_value(int index, double value) {biases.at(index) = value;}
 void NeuralNetwork::set_sinapsis_value(int index, double value) {sinapsis.at(index) = value;}
+
+double NeuralNetwork::get_biases_value(int index) {return biases.at(index);}
+double NeuralNetwork::get_sinapsis_value(int index) {return sinapsis.at(index);}
+
+void NeuralNetwork::update_biases_value(int index, double value) {biases.at(index) += value;}
+void NeuralNetwork::update_sinapsis_value(int index, double value) {sinapsis.at(index) += value;}
+

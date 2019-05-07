@@ -241,3 +241,8 @@ double Ensemble::GetForce(int config_id, int atom_id, int coord_id) {
     }
     return forces.at(config_id)[3*atom_id + coord_id];
 }
+
+
+double Ensemble::GetEnergy(int config_id) {
+    return energies.at(config_id);
+}

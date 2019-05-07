@@ -16,6 +16,7 @@ using namespace libconfig;
 // Allowed modes are
 #define M_GENERATE "generate"
 #define M_TEST "test"
+#define M_TEST_NEURON "neuro-test"
 
 // If the mode is generate, you must insert the parameter of the NN
 #define NLIM "n_lim"
@@ -32,6 +33,11 @@ using namespace libconfig;
 #define CONFIG_FILE "test_config"
 #define ATM_INDEX "atom_index"
 #define ATM_COORD "atom_coord"
+#define TEST_KIND "neuro_kind"
+#define TEST_SINAPSIS "sinapsis"
+#define TEST_BIAS "bias"
+#define TEST_INDEX "neuro_index"
+#define TEST_TYPE "neuro_type"
 #define STEP_SIZE "step_size"
 #define N_STEPS "n_steps"
 
@@ -159,7 +165,7 @@ int main(int argc, char * argv[]) {
         AtomicNetwork * atm = new AtomicNetwork(symf, ensemble, Nx, Ny, Nz, Nlim, Nhidden, NULL, Nnodes);
         cout << "Saving the network into " << save_prefix << endl;
         atm->SaveCFG(save_prefix.c_str());
-    } else if (mode == M_TEST) {
+    } else if (mode == M_TEST || mode == M_TEST_NEURON) {
         // Perform the test on the neural network
 
         // Get the wanted network
@@ -167,6 +173,10 @@ int main(int argc, char * argv[]) {
         string configuration_fname;
         int atom_index = 0, atom_coord= 0, n_steps = 10;
         double step_size = 1e-2;
+        bool test_sinapsis = false;
+        int neuro_index = 0;
+        int type_index = 0;
+        string test_kind;
         try {
             if (!root.lookupValue(LOADNETWORK, network_prefix)) {
                 cerr << "Error, within mode " << M_TEST << endl;
@@ -179,8 +189,26 @@ int main(int argc, char * argv[]) {
             }
 
             // Lookup all the other values
-            root.lookupValue(ATM_INDEX, atom_index);
-            root.lookupValue(ATM_COORD, atom_coord);
+            if (mode == M_TEST) {
+                root.lookupValue(ATM_INDEX, atom_index);
+                root.lookupValue(ATM_COORD, atom_coord);
+            } else {
+                if (root.lookupValue(TEST_KIND, test_kind)) {
+                    if (test_kind == TEST_BIAS) {
+                        test_sinapsis = false;
+                    } else if (test_kind == TEST_SINAPSIS){
+                        test_sinapsis = true;
+                    } else {
+                        cerr << "Error, " << TEST_KIND << " argument can be only " << TEST_BIAS<< " or " << TEST_SINAPSIS << endl;
+                        throw "";
+                    }
+                }
+
+                neuro_index = root.lookup(TEST_INDEX);
+                root.lookupValue(TEST_TYPE, type_index);
+            }
+
+
             root.lookupValue(N_STEPS, n_steps);
             root.lookupValue(STEP_SIZE, step_size);
 
@@ -210,8 +238,18 @@ int main(int argc, char * argv[]) {
         // Load the atomic neural network
         AtomicNetwork * atomic_network = new AtomicNetwork(network_prefix.c_str());
 
-        // Load the given configuration
-        Atoms * config = new Atoms(configuration_fname);
+        // Load the given configuration or ensemble
+        Atoms * config;
+        Ensemble * ensemble;
+
+        if (M_TEST) 
+            config = new Atoms(configuration_fname);
+        else
+        {
+            ensemble = new Ensemble();
+            ensemble->LoadFromCFG(argv[1]);
+        }
+        
 
         // Check that the input is consistent with the given configuration
         if (atom_index < 0 || atom_index >= config->GetNAtoms()) {
@@ -220,30 +258,84 @@ int main(int argc, char * argv[]) {
         }
 
         // Move the atom and get energy / force
-        double energy;
+        double energy, grad;
         double * forces = new double[config->GetNAtoms() * 3];
 
+        double ** grad_biases = new double * [atomic_network->N_types];
+        double ** grad_sinapsis = new double * [atomic_network->N_types];
+        if (mode == M_TEST_NEURON) {
+            for (int i = 0; i < atomic_network->N_types; ++i) {
+                int n_biases = atomic_network->GetNNFromElement(atomic_network->atomic_types.at(i))->get_nbiases();
+                int n_sinapsis = atomic_network->GetNNFromElement(atomic_network->atomic_types.at(i))->get_nsinapsis();
 
-        cout << "# Coord; Energy; Force" << endl ;
+                
+                grad_sinapsis[i] = new double[n_sinapsis];
+                grad_biases[i] = new double[n_biases];
+            }
+
+            cout << "# Coord; Loss function; Gradient" << endl ;
+        }
+        else {
+            cout << "# Coord; Energy; Force" << endl ;
+        }
+
         for (int i = 0; i < n_steps ; ++i) {
             // Compute the atom energy and force
-            energy = atomic_network->GetEnergy(config, forces);
+            if (mode == M_TEST) {
+                energy = atomic_network->GetEnergy(config, forces);
+                // Print on output
+                cout << std::scientific <<  i*step_size << "\t" <<  energy << "\t" << forces[3 * atom_index + atom_coord] << endl;
 
-            // Print on output
-            cout << std::scientific <<  i*step_size << "\t" <<  energy << "\t" << forces[3 * atom_index + atom_coord] << endl;
+                // Move the atom for the next step
+                config->coords[3 * atom_index + atom_coord] += step_size;
+            }
+            else {
+                // Put the gradient to zero
+                for (int j = 0; j < atomic_network->N_types; ++j) {
+                    int n_biases = atomic_network->GetNNFromElement(atomic_network->atomic_types.at(j))->get_nbiases();
+                    int n_sinapsis = atomic_network->GetNNFromElement(atomic_network->atomic_types.at(j))->get_nsinapsis();
 
-            // Move the atom for the next step
-            config->coords[3 * atom_index + atom_coord] += step_size;
+                    for (int k = 0; k < n_biases; ++k) {
+                        grad_biases[j][k] = 0;
+                    }
+                    for (int k = 0; k < n_sinapsis; ++k) {
+                        grad_sinapsis[j][k] = 0;
+                    }
+                }
+
+                // Compute the loss function
+                energy = atomic_network->GetLossGradient(ensemble, Nx, Ny, Nz, 1, 0, grad_biases, grad_sinapsis);
+
+                if (test_sinapsis) {
+                    grad = grad_sinapsis[type_index][neuro_index];
+                    atomic_network->GetNNFromElement(type_index)->update_sinapsis_value(neuro_index, step_size);
+                } else {
+                    grad = grad_biases[type_index][neuro_index];
+                    atomic_network->GetNNFromElement(type_index)->update_biases_value(neuro_index, step_size);
+                }
+                cout << std::scientific <<  i*step_size << "\t" <<  energy << "\t" << grad << endl;
+            }
         }
 
         // Destroy
+        if (mode == M_TEST_NEURON) {
+            for (int i = 0; i < atomic_network->N_types; ++i) {
+                delete[] grad_biases[i];
+                delete[] grad_sinapsis[i];
+            }
+        }
+        delete[] grad_biases;
+        delete[] grad_sinapsis;
+
         delete[] forces;
         delete atomic_network;
         delete config;
-    } else {
+    } 
+    else {
         cerr << "Error, the variable " << MODE << " can be only:" << endl;
         cerr << "    1) " << M_GENERATE << endl;
         cerr << "    2) " << M_TEST << endl;
+        cerr << "    3) " << M_TEST_NEURON << endl;
         cerr << " The value '" << mode << "' is not allowed!" << endl;
         exit(EXIT_FAILURE);
     }

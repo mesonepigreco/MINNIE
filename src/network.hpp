@@ -220,6 +220,11 @@ public:
   // This sets and loads the sinapsis/biases value by the positional index.
   void set_biases_value(int index, double value);
   void set_sinapsis_value(int index, double value);  
+  double get_biases_value(int index);
+  double get_sinapsis_value(int index);  
+  void update_biases_value(int index, double value); // Sum the value to the current value of the biases
+  void update_sinapsis_value(int index, double value);  
+
 
   // Save the network to a file for a successive loading
   void Save(string filename);
