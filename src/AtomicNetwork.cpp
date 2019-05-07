@@ -494,7 +494,7 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, int Nx, int Ny, i
         n_conf = training_set->GetNConfigs();
     }
 
-    if (n_conf + offset >= training_set->GetNConfigs()) {
+    if (n_conf + offset > training_set->GetNConfigs()) {
         cerr << "Error in function GetLossGradient: the selected number of configurations " << n_conf << " + " << offset << endl; 
         cerr << "cannot exceed the total number of configurations " << training_set->GetNConfigs() << endl;
         cerr << "FILE: " << __FILE__ << " LINE: " << __LINE__ << endl;
@@ -510,8 +510,15 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, int Nx, int Ny, i
         // Get the current atomic configuration from the ensemble
         training_set->GetConfig(offset + i, config);
 
+        cout << "Anal config " << i << " " << __LINE__ << endl;
+
         forces = new double[config->GetNAtoms()];
-        energy = GetEnergy(config, forces, Nx, Ny, Nz, grad_biases, grad_sinapsis, training_set->GetEnergy(i));
+        energy = training_set->GetEnergy(i);
+
+        cout << "Anal config " << i << " " << __LINE__ << endl;
+        energy = GetEnergy(config, forces, Nx, Ny, Nz, grad_biases, grad_sinapsis, energy);
+
+        cout << "Anal config" << i << " " << __LINE__ <<endl;
 
         // Get the loss function
         loss += weight_energy *(energy - training_set->GetEnergy(i) )*(energy - training_set->GetEnergy(i)) / (config->GetNAtoms());

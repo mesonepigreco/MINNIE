@@ -183,7 +183,7 @@ int main(int argc, char * argv[]) {
                 cerr << "       you need to provide the key: " << LOADNETWORK << endl;
                 exit(EXIT_FAILURE);
             }
-            if (!root.lookupValue(CONFIG_FILE, configuration_fname)) {
+            if (!root.lookupValue(CONFIG_FILE, configuration_fname) && mode == M_TEST) {
                 cerr << "Error, you must provide the testing configuration as: " << CONFIG_FILE << endl;
                 exit(EXIT_FAILURE);
             }
@@ -228,11 +228,18 @@ int main(int argc, char * argv[]) {
             cerr << "Error in file " << argv[1] << endl;
             cerr << "Wrong type of the option:" << e.getPath() << endl;
             throw;
+        } catch (SettingNotFoundException &e) {
+            cerr << "Error while reading the file " << argv[1] << endl;
+            cerr << "Required setting: " << e.getPath() << " not found!" <<endl;
+            cerr << "Please, check carefully your input." << endl;
+            cerr << e.what() << endl;
+            throw;
         } catch (...) {
             cerr << "Generic error while reading the file " << argv[1] << endl;
-            cerr << "Please, check carefully your input." << endl;
+            cerr << "FILE: " << __FILE__ << "LINE: " << __LINE__ << endl;
             throw;
         }
+
 
 
         // Load the atomic neural network
@@ -242,7 +249,8 @@ int main(int argc, char * argv[]) {
         Atoms * config;
         Ensemble * ensemble;
 
-        if (M_TEST) 
+
+        if (mode == M_TEST) 
             config = new Atoms(configuration_fname);
         else
         {
@@ -251,18 +259,26 @@ int main(int argc, char * argv[]) {
         }
         
 
+
         // Check that the input is consistent with the given configuration
-        if (atom_index < 0 || atom_index >= config->GetNAtoms()) {
-            cerr << "Error, the atomic index must be in the range [0, " << config->GetNAtoms() << ")" << endl;
-            exit(EXIT_FAILURE);
+        double * forces;
+        if (mode == M_TEST) {
+            if (atom_index < 0 || atom_index >= config->GetNAtoms()) {
+                cerr << "Error, the atomic index must be in the range [0, " << config->GetNAtoms() << ")" << endl;
+                exit(EXIT_FAILURE);
+            }
+
+            forces = new double[config->GetNAtoms() * 3];
         }
 
         // Move the atom and get energy / force
         double energy, grad;
-        double * forces = new double[config->GetNAtoms() * 3];
+
+
 
         double ** grad_biases = new double * [atomic_network->N_types];
         double ** grad_sinapsis = new double * [atomic_network->N_types];
+
         if (mode == M_TEST_NEURON) {
             for (int i = 0; i < atomic_network->N_types; ++i) {
                 int n_biases = atomic_network->GetNNFromElement(atomic_network->atomic_types.at(i))->get_nbiases();
@@ -323,11 +339,12 @@ int main(int argc, char * argv[]) {
                 delete[] grad_biases[i];
                 delete[] grad_sinapsis[i];
             }
+        } else {
+            delete[] forces;
         }
         delete[] grad_biases;
         delete[] grad_sinapsis;
 
-        delete[] forces;
         delete atomic_network;
         delete config;
     } 

@@ -103,6 +103,7 @@ void Ensemble::Load(string folder_path, int N_conf, int population, int N_atoms,
             }
         }
 
+
         // Try to read also the stresses
         filename = folder_path + "pressures_population" + to_string(population) + "_" + to_string(i+1) + ".dat";
         uc_file.open(filename);
@@ -137,8 +138,36 @@ void Ensemble::Load(string folder_path, int N_conf, int population, int N_atoms,
         }
     }
 
+    // Try to read the energy
+    filename = folder_path + "energies_supercell_population" + to_string(population) + ".dat";
+    uc_file.open(filename);
+    if (uc_file) {
+
+        double energy;
+        for (int i = 0; i < N_conf; ++i) {
+            if (! (uc_file >> energy)) {
+                cerr << "Error while reading the energy file " << filename << endl;
+                cerr << "Insufficient number of energies with respect to " << N_conf << endl;
+                cerr << "FILE: " << __FILE__ << " LINE: " << __LINE__<< endl;
+                throw "";
+            }
+
+            energies.push_back(energy);
+        }
+        uc_file.close();
+
+    } else {
+        if (has_forces) {
+            cerr << "Error, found force but not energy: " << filename << " not found!" << endl;
+            cerr << "FILE: " << __FILE__ << " LINE: " << __LINE__<< endl;
+            throw "";
+        }
+    }
+
     // Update the number of configurations.
     GetNConfigs();
+
+
 }
 
 int Ensemble::GetNConfigs() {
@@ -165,17 +194,21 @@ int Ensemble::GetNTyp(void) {
 void Ensemble::LoadFromCFG(const char * config_file) {
     Config cfg;
 
+    cout << __FILE__ << " " << __LINE__ << endl;
+
     try {
         cfg.readFile(config_file);
     } catch (const FileIOException &e) {
+        cerr << "FILE: " << __FILE__ << "LINE:" << __LINE__ << endl;
         cerr << "Error while reading the file " << config_file << endl;
         throw; 
     } catch (const ParseException &e) {
+        cerr << "FILE: " << __FILE__ << "LINE:" << __LINE__ << endl;
         cerr << "Error while parsing the file: " << config_file << endl;
         cerr << "Line:  " << e.getLine() << endl;
         cerr << e.getError() << endl;
         throw;
-    }
+    } 
 
     const Setting& root = cfg.getRoot();
     const Setting& ensemble_set = root[ENSEMBLE_ENVIRON];
@@ -244,5 +277,10 @@ double Ensemble::GetForce(int config_id, int atom_id, int coord_id) {
 
 
 double Ensemble::GetEnergy(int config_id) {
+    if (energies.size() == 0) {
+        cerr << "Error, you cannot ask for energy. This ensemble does not have them." << endl;
+        cerr << "FILE: " << __FILE__ << " LINE: " << __LINE__ << endl;
+        throw "";
+    }
     return energies.at(config_id);
 }
