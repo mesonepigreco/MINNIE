@@ -3,7 +3,7 @@
 ## Libraries needed
 To compile (and install) ANNIE you need to have the developer version of the following libraries
 
-1. GLS (GNU Scientific Library)
+1. GSL (GNU Scientific Library)
 2. Libconfig++
 3. BOOST (system and filesystem extension)
 4. (Optional) Python-dev
