@@ -20,7 +20,9 @@
 #define ENSEMBLE_NATOMS "n_atoms"
 #define ENSEMBLE_POPULATION "population"
 #define ENSEMBLE_ALAT "alat"
-
+#define ENSEMBLE_NX "N_sup_x"
+#define ENSEMBLE_NY "N_sup_y"
+#define ENSEMBLE_NZ "N_sup_z"
 
 using namespace std;
 using namespace libconfig;
@@ -37,6 +39,9 @@ private:
     bool has_stresses;
 
 public:
+
+    // The standard supercell size for the ensemble
+    int N_x, N_y, N_z;
 
     // Construct the ensemble
     Ensemble();

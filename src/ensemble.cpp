@@ -8,6 +8,9 @@ using namespace libconfig;
 
 Ensemble::Ensemble() {
     N_configs = 0;
+    N_x = 1;
+    N_y = 1;
+    N_z = 1;
 }
 
 Ensemble::~Ensemble() {
@@ -250,12 +253,19 @@ void Ensemble::LoadFromCFG(const char * config_file) {
     try {
         ensemble_set.lookupValue(ENSEMBLE_POPULATION, pop);
         ensemble_set.lookupValue(ENSEMBLE_ALAT, alat);
+
+
+        ensemble_set.lookupValue(ENSEMBLE_NX, N_x);
+        ensemble_set.lookupValue(ENSEMBLE_NY, N_y);
+        ensemble_set.lookupValue(ENSEMBLE_NZ, N_z);
+
     } catch (const SettingTypeException &e) {
         cerr << "Error while reading the configuration file" << endl;
         cerr << "Please, check the setting: " << e.getPath() << endl;
         cerr << "for correct type." << endl;
         throw;
     }
+
 
     // Now load the ensemble 
     Load(data_dir, N_configs, pop, N_atoms, alat);

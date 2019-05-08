@@ -113,10 +113,6 @@ private:
   
 
   
-  // Find the index of a given sinapsis
-  int get_neuron_index(int layer, int index);
-  int get_sinapsis_index(int starting_layer, int starting_index, int end_index);
-  int get_biases_index(int layer, int index);
 
   //int get_inverse_neuron_index(int layer, int index);
 
@@ -225,6 +221,11 @@ public:
   void update_biases_value(int index, double value); // Sum the value to the current value of the biases
   void update_sinapsis_value(int index, double value);  
 
+
+  // Find the index of a given sinapsis
+  int get_neuron_index(int layer, int index);
+  int get_sinapsis_index(int starting_layer, int starting_index, int end_index);
+  int get_biases_index(int layer, int index);
 
   // Save the network to a file for a successive loading
   void Save(string filename);

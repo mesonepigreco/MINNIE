@@ -3,6 +3,8 @@ all: NN.exe test_sd_deriv.exe test_ensemble.exe test_read_atoms.exe test_nn_pred
 
 tests: test_nn_prediction.exe test_ensemble.exe test_sd_deriv.exe test_read_atoms.exe
 
+
+
 NN.exe: main.cpp network.o utils.o test_read_atoms.exe test_ensemble.exe
 	$(CPP) $(CFLAGS)  network.o utils.o  main.cpp  -o NN.exe $(LIBS) 
 
@@ -17,6 +19,9 @@ test_ensemble.exe: ensemble.o atoms.o test_ensemble.cpp symmetric_functions.o an
 
 test_read_atoms.exe: atoms.o test_read_atoms.cpp
 	$(CPP) $(CFLAGS) atoms.o test_read_atoms.cpp -o test_read_atoms.exe
+
+Trainer.o: AtomicNetwork.o ensemble.o Trainer.hpp Trainer.cpp
+	$(CPP) $(CFLAGS) -c Trainer.cpp -o Trainer.o
 
 AtomicNetwork.o: AtomicNetwork.hpp AtomicNetwork.cpp symmetric_functions.o
 	$(CPP) $(CFLAGS) -c AtomicNetwork.cpp -o AtomicNetwork.o
