@@ -335,18 +335,19 @@ int main(int argc, char * argv[]) {
 
         // Destroy
         if (mode == M_TEST_NEURON) {
+            delete ensemble;
             for (int i = 0; i < atomic_network->N_types; ++i) {
                 delete[] grad_biases[i];
                 delete[] grad_sinapsis[i];
             }
         } else {
+            delete config;
             delete[] forces;
         }
         delete[] grad_biases;
         delete[] grad_sinapsis;
 
         delete atomic_network;
-        delete config;
     } 
     else {
         cerr << "Error, the variable " << MODE << " can be only:" << endl;

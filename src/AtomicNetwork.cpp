@@ -28,15 +28,15 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
         tmp_forces = new double[N_lim* N_atms];
 
 
-        // Allocate all
-        if (grad_bias) {
-            tmp_biases = new double* [coords->GetNTypes()];
-            tmp_sinapsis = new double* [coords->GetNTypes()];
-            for (int i = 0; i < coords->GetNTypes(); ++i) {
-                tmp_biases[i] = new double [atomic_network.at(i)->get_nbiases()];
-                tmp_sinapsis[i] = new double [atomic_network.at(i)->get_nsinapsis()];
-            }
-        }
+        // // Allocate all
+        // if (grad_bias) {
+        //     tmp_biases = new double* [coords->GetNTypes()];
+        //     tmp_sinapsis = new double* [coords->GetNTypes()];
+        //     for (int i = 0; i < coords->GetNTypes(); ++i) {
+        //         tmp_biases[i] = new double [atomic_network.at(i)->get_nbiases()];
+        //         tmp_sinapsis[i] = new double [atomic_network.at(i)->get_nsinapsis()];
+        //     }
+        // }
     }
 
     // Get the symmetric functions
@@ -45,8 +45,8 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
     //cout << "Symmetric functions obtained." << endl;
 
     E_tot = 0;
+    first_layer = new double[N_lim];
     for (int i = 0; i < N_atms; ++i) { // Parallelizable
-        first_layer = new double[N_lim];
 
         if (AN_DEB) {     
             for (int k = 0; k < N_sym; ++k) 
@@ -88,8 +88,10 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
                 first_layer[j] /= sqrt(eigvals[j]);
             }
 
+
             // Perform the Forward Propagation
             GetNNFromElement(type)->PredictFeatures(1, first_layer, &E_i);
+
 
             // Set the last node to the gradient of the loss function with respect to the atomic energy
             dumb = 2 * (E_tot - target_energy) / N_atms;
@@ -100,7 +102,6 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
     }
 
     delete[] first_layer;
-
 
 
     // Get the forces
@@ -134,7 +135,6 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
                 // Get the derivative of the symmetry function with respect to the atom
                 symm_f->GetDerivatives(coords, Nx, Ny, Nz, i, x, dG_dX); 
-
 
                 //cout << "Computing atom: " << i  << "/" << N_atms << " coord " << x ;
                 
@@ -187,19 +187,16 @@ void AtomicNetwork::SaveCFG(const char * PREFIX) {
     Setting &root = main_cfg.getRoot();
 
     // Add the types
-    cout << "I'm here" << endl;
     root.add(AN_ENVIRON, Setting::TypeGroup);
     Setting &AN = root[AN_ENVIRON];
     AN.add(AN_NTYPES, Setting::TypeInt) = N_types;
     Setting &types = AN.add(AN_TYPELIST, Setting::TypeArray);
-    cout << "Adding types" << endl;
     for (int i = 0; i < N_types; ++i) {
         types.add(Setting::TypeInt) = atomic_types.at(i);
     }
 
     int N_syms;
     N_syms = symm_f->GetTotalNSym(N_types);
-    cout << "Getting the number of symmetries" << N_syms << endl;
 
     // Add the PCA
     root.add(AN_PCA, Setting::TypeGroup);
@@ -214,7 +211,6 @@ void AtomicNetwork::SaveCFG(const char * PREFIX) {
             ev.add(Setting::TypeFloat) = eigvects[N_syms*i + j];
         }
     }
-    cout << "I'm here 2" << endl;
 
 
     // Add the symmetry functions
@@ -230,7 +226,6 @@ void AtomicNetwork::SaveCFG(const char * PREFIX) {
 
     // Save the symmetry functions
     filename = string(PREFIX) + string("_symfuncs.cfg");
-    cout << "Saving the symmetry functions" << endl;
     symm_f->SaveToCFG(filename.c_str());
 }
 
@@ -371,6 +366,9 @@ AtomicNetwork::~AtomicNetwork() {
 
     atomic_network.clear();
     atomic_types.clear();
+
+    delete symm_f;
+
 }
 
 AtomicNetwork::AtomicNetwork(const char * PREFIX) {
@@ -510,15 +508,10 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, int Nx, int Ny, i
         // Get the current atomic configuration from the ensemble
         training_set->GetConfig(offset + i, config);
 
-        cout << "Anal config " << i << " " << __LINE__ << endl;
-
-        forces = new double[config->GetNAtoms()];
+        forces = new double[config->GetNAtoms()*3];
         energy = training_set->GetEnergy(i);
 
-        cout << "Anal config " << i << " " << __LINE__ << endl;
         energy = GetEnergy(config, forces, Nx, Ny, Nz, grad_biases, grad_sinapsis, energy);
-
-        cout << "Anal config" << i << " " << __LINE__ <<endl;
 
         // Get the loss function
         loss += weight_energy *(energy - training_set->GetEnergy(i) )*(energy - training_set->GetEnergy(i)) / (config->GetNAtoms());

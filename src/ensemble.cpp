@@ -12,10 +12,15 @@ Ensemble::Ensemble() {
 
 Ensemble::~Ensemble() {
     // We can delete all the structures
-    for (int i = 0; i < N_configs; ++i) {
-        ensemble.pop_back();
-        if (has_forces) forces.pop_back();
-        if (has_stresses) stresses.pop_back();
+    for (int i = 0; i < ensemble.size(); ++i) {
+        delete ensemble.at(i);
+    }
+
+    for (int i = 0; i < forces.size();++i) {
+        delete[] forces.at(i);
+    }
+    for (int i = 0; i < stresses.size(); ++i) {
+        delete[] stresses.at(i);
     }
 }
 
@@ -193,8 +198,6 @@ int Ensemble::GetNTyp(void) {
 
 void Ensemble::LoadFromCFG(const char * config_file) {
     Config cfg;
-
-    cout << __FILE__ << " " << __LINE__ << endl;
 
     try {
         cfg.readFile(config_file);

@@ -496,6 +496,8 @@ void SymmetricFunctions::GetDerivatives(Atoms * structure, int Nx, int Ny, int N
       }
     }
   }
+
+  delete supercell;
 }
 
 
@@ -740,13 +742,11 @@ void SymmetricFunctions::SaveToCFG(const char * cfg_filename) {
   main_env.add(SYMMFUNC_CUTOFF, Setting::TypeFloat) = cutoff_radius;
   main_env.add(SYMMFUNC_CUTOFFTYPE, Setting::TypeInt) = cutoff_function_type;
 
-  cout << "Im here" <<endl;
 
   // Add the G2 symmetric functions
   Setting& g2_rs = main_env.add(SYMMFUNC_G2RS, Setting::TypeArray);
   Setting& g2_eta = main_env.add(SYMMFUNC_G2ETA, Setting::TypeArray);
 
-  cout << "Saving all the g2" << endl;
   for (int i = 0; i < N_G2; ++i) {
     g2_rs.add(Setting::TypeFloat) = G2_RS.at(i);
     g2_eta.add(Setting::TypeFloat) = G2_ETA.at(i);
@@ -757,7 +757,6 @@ void SymmetricFunctions::SaveToCFG(const char * cfg_filename) {
   Setting& g4_eta = main_env.add(SYMMFUNC_G4ETA, Setting::TypeArray);
   Setting& g4_lambda = main_env.add(SYMMFUNC_G4LAMBDA, Setting::TypeArray);
 
-  cout << "Saving all the g4" << endl;
   for (int i = 0; i < N_G4; ++i) {
     g4_zeta.add(Setting::TypeFloat) = G4_ZETA.at(i);
     g4_eta.add(Setting::TypeFloat) = G4_ETA.at(i);
@@ -766,4 +765,9 @@ void SymmetricFunctions::SaveToCFG(const char * cfg_filename) {
 
   // write to file
   cfg.writeFile(cfg_filename);
+}
+
+
+SymmetricFunctions::~SymmetricFunctions(){
+  // Nothing to do.
 }
