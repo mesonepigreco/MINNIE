@@ -377,7 +377,7 @@ AtomicNetwork::AtomicNetwork(const char * PREFIX) {
 }
 
 // Build the network from scratch
-AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int Nx, int Ny, int Nz, int Nlim, int Nhidden, int *nphl, int nhl) {
+AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int Nlim, int Nhidden, int *nphl, int nhl) {
     // Check if the number of nodes per hidden layer
     if (!nphl && nhl <= 0) {
         cerr << "Error in construction of AtomicNetwork." << endl;
@@ -406,7 +406,7 @@ AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int 
 
     // Perform the PCA
     double * means, *cvar_mat;
-    GetCovarianceSymmetry(ensemble, symf, Nx, Ny, Nz, means, cvar_mat);
+    GetCovarianceSymmetry(ensemble, symf, ensemble->N_x, ensemble->N_y, ensemble->N_z, means, cvar_mat);
 
     cout << "Nlim:" << N_lim << endl;
     cout << "Covariance matrix:" << endl;
@@ -474,7 +474,7 @@ NeuralNetwork * AtomicNetwork::GetNNFromElement(int element_type) {
 
 
 
-double AtomicNetwork::GetLossGradient(Ensemble * training_set, int Nx, int Ny, int Nz, double weight_energy, double weight_forces, double ** grad_biases, double ** grad_sinapsis, int offset, int n_configs) {
+double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_energy, double weight_forces, double ** grad_biases, double ** grad_sinapsis, int offset, int n_configs) {
     // Check the parameters
     int n_conf = n_configs;
     if (offset >= training_set->GetNConfigs()) {
@@ -511,7 +511,7 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, int Nx, int Ny, i
         forces = new double[config->GetNAtoms()*3];
         energy = training_set->GetEnergy(i);
 
-        energy = GetEnergy(config, forces, Nx, Ny, Nz, grad_biases, grad_sinapsis, energy);
+        energy = GetEnergy(config, forces, training_set->N_x, training_set->N_y, training_set->N_z, grad_biases, grad_sinapsis, energy);
 
         // Get the loss function
         loss += weight_energy *(energy - training_set->GetEnergy(i) )*(energy - training_set->GetEnergy(i)) / (config->GetNAtoms());
@@ -526,7 +526,7 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, int Nx, int Ny, i
 }
 
 
-void AtomicNetwork::TrainNetwork(Ensemble * training_set, int Nx, int Ny, int Nz, string method, double step, int N_steps, bool use_lmin) {
+void AtomicNetwork::TrainNetwork(Ensemble * training_set, string method, double step, int N_steps, bool use_lmin) {
 
     // Allocate the gradient biases and sinapsis for the whole atomic network 
     int n_networks = atomic_network.size();
@@ -575,7 +575,7 @@ void AtomicNetwork::TrainNetwork(Ensemble * training_set, int Nx, int Ny, int Nz
                 grad_sinapsis[i][j] = 0;
         }
 
-        loss = GetLossGradient(training_set, Nx, Ny, Nz, weight_energy, weight_force, grad_biases, grad_sinapsis);
+        loss = GetLossGradient(training_set, weight_energy, weight_force, grad_biases, grad_sinapsis);
 
         // Perform the optimization step
         if (method == AN_TRAINSD) {

@@ -104,9 +104,24 @@ void Trainer::TrainAtomicNetwork(AtomicNetwork* target, bool precondition) {
             
         }
 
+        NeuralNetwork * network;
+        double sigma;
+        int n_last;
         for (int j = 0; j < n_typ; ++j) {
-            // Setup the network
-            // TODO: SETUP THE LAST BIASES AND THE SINAPSIS!
+            // Setup the last bias network
+            network = target->GetNNFromElement(j);
+
+            network->set_biases_value(network->get_nbiases() - 1, av_energy_per_type[j]);
+
+            sigma = av_energy2_per_type[j] - av_energy_per_type[j] * av_energy_per_type[j];
+            n_last = network->N_nodes.at(network->N_hidden_layers);
+
+            sigma = sqrt(sigma/n_last);        
+
+            // Setup the last sinapsis
+            for (int k = 0; k < n_last;++k) {
+                network->set_sinapsis_value( network->get_nsinapsis() - k, sigma);
+            }
         }
     }
 

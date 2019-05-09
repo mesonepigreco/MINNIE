@@ -81,7 +81,7 @@ public:
      *      nodes_hl :
      *          Home many nodes per layer? Leave 0 if you want a different number for each layer.
      */
-    AtomicNetwork(SymmetricFunctions*, Ensemble*, int Nx, int Ny, int Nz, int N_lim, int N_hidden,
+    AtomicNetwork(SymmetricFunctions*, Ensemble*, int N_lim, int N_hidden,
         int * nodes_per_hidden_layer = NULL, int nodes_hl = 0);
     ~AtomicNetwork();
 
@@ -118,7 +118,7 @@ public:
      *      use_lmin :
      *          If True (default) the step will be optimized during the optimization.
      */
-    void TrainNetwork(Ensemble * training_set, int Nx, int Ny, int Nz, string method, double step, int N_steps, bool use_lmin = true);
+    void TrainNetwork(Ensemble * training_set, string method, double step, int N_steps, bool use_lmin = true);
 
 
     /*
@@ -143,7 +143,7 @@ public:
      *      n_configs : 
      *          The number of configurations to be used. If negative the whole ensemble is used.
      */ 
-    double GetLossGradient(Ensemble * training_set, int Nx, int Ny, int Nz, double weight_energy = 1, double weight_forces = 0, double ** grad_biases = NULL, double ** grad_sinapsis = NULL, int offset = 0, int n_configs = -1);
+    double GetLossGradient(Ensemble * training_set, double weight_energy = 1, double weight_forces = 0, double ** grad_biases = NULL, double ** grad_sinapsis = NULL, int offset = 0, int n_configs = -1);
 
     /*
      * Save/Load the current network in a cfg file.

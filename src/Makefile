@@ -8,8 +8,8 @@ tests: test_nn_prediction.exe test_ensemble.exe test_sd_deriv.exe test_read_atom
 NN.exe: main.cpp network.o utils.o test_read_atoms.exe test_ensemble.exe
 	$(CPP) $(CFLAGS)  network.o utils.o  main.cpp  -o NN.exe $(LIBS) 
 
-test_nn_prediction.exe: AtomicNetwork.o symmetric_functions.o network.o ensemble.o analyze_ensemble.o utils.o atoms.o matrix.o test_nn_prediction.cpp
-	$(CPP) $(CFLAGS) AtomicNetwork.o symmetric_functions.o network.o ensemble.o atoms.o analyze_ensemble.o matrix.o utils.o test_nn_prediction.cpp -o test_nn_prediction.exe $(LIBS) $(GSLFLAGS) $(BOOSTFLAGS)
+test_nn_prediction.exe: AtomicNetwork.o symmetric_functions.o network.o ensemble.o analyze_ensemble.o utils.o atoms.o matrix.o test_nn_prediction.cpp ParseInput.o
+	$(CPP) $(CFLAGS) AtomicNetwork.o ParseInput.o symmetric_functions.o network.o ensemble.o atoms.o analyze_ensemble.o matrix.o utils.o test_nn_prediction.cpp -o test_nn_prediction.exe $(LIBS) $(GSLFLAGS) $(BOOSTFLAGS)
 
 test_sd_deriv.exe: symmetric_functions.o atoms.o test_sf_deriv.cpp
 	$(CPP) $(CFLAGS) atoms.o symmetric_functions.o test_sf_deriv.cpp -o test_sf_deriv.exe $(LIBS)
@@ -22,6 +22,9 @@ test_read_atoms.exe: atoms.o test_read_atoms.cpp
 
 Trainer.o: AtomicNetwork.o ensemble.o Trainer.hpp Trainer.cpp
 	$(CPP) $(CFLAGS) -c Trainer.cpp -o Trainer.o
+
+ParseInput.o: ParseInput.hpp ParseInput.cpp
+	$(CPP) $(CFLAGS) -c ParseInput.cpp -o ParseInput.o
 
 AtomicNetwork.o: AtomicNetwork.hpp AtomicNetwork.cpp symmetric_functions.o
 	$(CPP) $(CFLAGS) -c AtomicNetwork.cpp -o AtomicNetwork.o

@@ -77,13 +77,7 @@ public:
 
 class NeuralNetwork {
 private:
-  // Number of hidden layers
-  int N_hidden_layers;
   
-  // Number of notes for each layer
-  // The first and the last are, respectively, the incoming and outcoming layers
-  vector<int> N_nodes;
-
   // Biases and sinapsis for the network
   vector<double> biases;
   vector<double> sinapsis;
@@ -124,6 +118,15 @@ private:
   double diff_activation(double x);
   
 public:
+
+  // Number of hidden layers
+  int N_hidden_layers;
+
+  // Number of notes for each layer
+  // The first and the last are, respectively, the incoming and outcoming layers
+  vector<int> N_nodes;
+
+
   /*
    * The constructor. In the moment the network is built it needs to know
    * how many layers and nodes it has.
