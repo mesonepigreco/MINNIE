@@ -17,6 +17,7 @@
 #define TRAINER_STEP "step"
 #define TRAINER_NITERS "max_iterations"
 #define TRAINER_USE_LMIN "line_minimization"
+#define TRAINER_SAVE_PREFIX "output_prefix"
 
 
 class Trainer {
@@ -26,6 +27,8 @@ public:
     double step; 
     int N_steps;
     bool use_lmin;
+
+    string save_prefix;
 
 
     // Constructor

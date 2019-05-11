@@ -59,6 +59,10 @@ void Trainer::SetupFromCFG(const char * file) {
         step = train_env.lookup(TRAINER_STEP);
         N_steps = train_env.lookup(TRAINER_NITERS);
         train_env.lookupValue(TRAINER_USE_LMIN, use_lmin);
+        if (! train_env.lookupValue(TRAINER_SAVE_PREFIX, save_prefix)) {
+            cerr << "Error, you need to specify the " << TRAINER_SAVE_PREFIX <<" inside the " << TRAINER_KEYWORD << " environ." << endl;
+            throw "";
+        }
     } catch ( const SettingNotFoundException &e) {
         cerr << "Error, the namelist: " << TRAINER_KEYWORD << " requires key: " << e.getPath() << endl;
         cerr << e.what()<<endl;
