@@ -155,7 +155,7 @@ void ParseInput(const char * inputfile) {
         }
 
         cout << "Building the atomic network..." << endl;
-        AtomicNetwork * atm = new AtomicNetwork(symf, ensemble, Nx, Ny, Nz, Nlim, Nhidden, NULL, Nnodes);
+        AtomicNetwork * atm = new AtomicNetwork(symf, ensemble, Nlim, Nhidden, NULL, Nnodes);
         cout << "Saving the network into " << save_prefix << endl;
         atm->SaveCFG(save_prefix.c_str());
     } else if (mode == M_TEST || mode == M_TEST_NEURON) {
@@ -313,7 +313,7 @@ void ParseInput(const char * inputfile) {
                 }
 
                 // Compute the loss function
-                energy = atomic_network->GetLossGradient(ensemble, Nx, Ny, Nz, 1, 0, grad_biases, grad_sinapsis);
+                energy = atomic_network->GetLossGradient(ensemble, 1, 0, grad_biases, grad_sinapsis);
 
                 if (test_sinapsis) {
                     grad = grad_sinapsis[type_index][neuro_index];

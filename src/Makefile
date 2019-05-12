@@ -1,9 +1,10 @@
 
-all: NN.exe test_sd_deriv.exe test_ensemble.exe test_read_atoms.exe test_nn_prediction.exe
+all: MINNIE.exe NN.exe test_sd_deriv.exe test_ensemble.exe test_read_atoms.exe test_nn_prediction.exe
 
 tests: test_nn_prediction.exe test_ensemble.exe test_sd_deriv.exe test_read_atoms.exe
 
-
+MINNIE.exe: MINNIE.cpp Trainer.o AtomicNetwork.o symmetric_functions.o network.o ensemble.o analyze_ensemble.o utils.o atoms.o matrix.o test_nn_prediction.cpp ParseInput.o
+	$(CPP) $(CFLAGS) Trainer.o AtomicNetwork.o ParseInput.o symmetric_functions.o network.o ensemble.o atoms.o analyze_ensemble.o matrix.o utils.o MINNIE.cpp -o MINNIE.exe $(LIBS) $(GSLFLAGS) $(BOOSTFLAGS)
 
 NN.exe: main.cpp network.o utils.o test_read_atoms.exe test_ensemble.exe
 	$(CPP) $(CFLAGS)  network.o utils.o  main.cpp  -o NN.exe $(LIBS) 

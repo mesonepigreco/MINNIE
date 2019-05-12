@@ -129,6 +129,5 @@ void Trainer::TrainAtomicNetwork(AtomicNetwork* target, bool precondition) {
         }
     }
 
-    target->TrainNetwork(training_set, training_set->N_x, training_set->N_y, training_set->N_z,
-        method, step, N_steps, use_lmin);
+    target->TrainNetwork(training_set, method, step, N_steps, use_lmin);
 }
