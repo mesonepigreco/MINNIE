@@ -407,10 +407,7 @@ void GetNetworkFromInput(const char * inputfile, AtomicNetwork * &network) {
             /* Natoms = network_env.lookup(ENSEMBLE_NATOMS);
             Nconfigs = network_env.lookup(ENSEMBLE_NCONFIG); */
 
-            if (!root.lookupValue(SAVE_PREFIX, save_prefix)) {
-                cerr << "Error, please provide a saving path thorugh " << SAVE_PREFIX << endl;
-                exit(EXIT_FAILURE);
-            }
+            //network_env.lookupValue(SAVE_PREFIX, save_prefix);
         } catch (const SettingNotFoundException &e) {
             cerr << "Error, missing one of the required keywords:" << endl;
             cerr << e.getPath() << endl;
