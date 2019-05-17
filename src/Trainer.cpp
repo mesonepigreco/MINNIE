@@ -14,7 +14,13 @@ Trainer::Trainer() {
 }
 
 Trainer::Trainer(const char * file) {
-    Trainer();
+    method = AN_TRAINSD;
+    step = 0.01;
+    N_steps = 1000;
+    use_lmin = false;
+
+    training_set = new Ensemble();
+
     SetupFromCFG(file);
 }
 
@@ -47,6 +53,7 @@ void Trainer::SetupFromCFG(const char * file) {
     }
 
     // Setup the ensemble
+    //training_set = new Ensemble();
     training_set->LoadFromCFG(file);
 
 

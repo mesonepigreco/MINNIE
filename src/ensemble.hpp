@@ -35,11 +35,12 @@ private:
     vector<double *> forces;
     vector<double*> stresses; // Voight order
 
-    bool has_forces;
-    bool has_stresses;
 
 public:
 
+    bool has_forces;
+    bool has_stresses;
+    
     // The standard supercell size for the ensemble
     int N_x, N_y, N_z;
 

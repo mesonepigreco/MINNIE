@@ -427,6 +427,9 @@ AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int 
 
     // Perform the PCA
     Diagonalize(cvar_mat, N_sym, tmp_eigvals, tmp_eigvects);
+
+    // We can free the memory for the covariance matrix
+    delete[] cvar_mat;
     
     for (int i = 0; i < N_lim; ++i) {
         eigvals[i] = tmp_eigvals[i];

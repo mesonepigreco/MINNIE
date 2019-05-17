@@ -11,6 +11,8 @@ Ensemble::Ensemble() {
     N_x = 1;
     N_y = 1;
     N_z = 1;
+    has_forces = false;
+    has_stresses = false;
 }
 
 Ensemble::~Ensemble() {
@@ -29,6 +31,7 @@ Ensemble::~Ensemble() {
 
 
 void Ensemble::Load(string folder_path, int N_conf, int population, int N_atoms, double alat) {
+    
     // Load the ensemble from the specified path
     has_forces = false;
     has_stresses = false;
@@ -41,6 +44,7 @@ void Ensemble::Load(string folder_path, int N_conf, int population, int N_atoms,
 
     // Read the unit cell if any
     string filename = folder_path + "unit_cell_population" + to_string(population) + ".dat";
+
     fstream uc_file(filename.c_str());
 
     double unit_cell[9];
@@ -174,8 +178,6 @@ void Ensemble::Load(string folder_path, int N_conf, int population, int N_atoms,
 
     // Update the number of configurations.
     GetNConfigs();
-
-
 }
 
 int Ensemble::GetNConfigs() {
