@@ -1,5 +1,6 @@
 #include "Trainer.hpp"
 #include <libconfig.h++>
+#include <math.h>
 
 using namespace std; 
 using namespace libconfig;
