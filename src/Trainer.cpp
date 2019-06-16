@@ -110,8 +110,8 @@ void Trainer::TrainAtomicNetwork(AtomicNetwork* target, bool precondition) {
 
                 double e_net;
                 e_net =  energy * n_of_type / (double) config->GetNAtoms();
-                av_energy_per_type[i] += e_net / training_set->GetNConfigs();
-                av_energy2_per_type[i] += e_net * e_net/ training_set->GetNConfigs();
+                av_energy_per_type[j] += e_net / training_set->GetNConfigs();
+                av_energy2_per_type[j] += e_net * e_net/ training_set->GetNConfigs();
             }
             
         }
@@ -128,11 +128,12 @@ void Trainer::TrainAtomicNetwork(AtomicNetwork* target, bool precondition) {
             sigma = av_energy2_per_type[j] - av_energy_per_type[j] * av_energy_per_type[j];
             n_last = network->N_nodes.at(network->N_hidden_layers);
 
-            sigma = sqrt(sigma/n_last);        
+            sigma = sqrt(sigma/n_last);
+	    sigma = 0;
 
             // Setup the last sinapsis
             for (int k = 0; k < n_last;++k) {
-                network->set_sinapsis_value( network->get_nsinapsis() - k, sigma);
+                network->set_sinapsis_value( network->get_nsinapsis() - k - 1, sigma);
             }
         }
     }

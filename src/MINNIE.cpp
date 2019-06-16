@@ -34,7 +34,7 @@ int main (int argc, char * argv[]) {
         cout << "MODE: TRAIN" << endl;
 
         Trainer * trainer = new Trainer(argv[1]);
-        trainer->TrainAtomicNetwork(network);
+        trainer->TrainAtomicNetwork(network, true);
 
         cout << "Train completed." << endl;
         cout << "Saving the results into PREFIX = " << trainer->save_prefix.c_str() << endl;
