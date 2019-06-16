@@ -172,7 +172,7 @@ int NeuralNetwork::get_biases_index(int layer, int index) {
 }
 
 /*
- * This get the neuron backward index, used in the backpropagation
+ * This get_sinapsis_starting_layer the neuron backward index, used in the backpropagation
  * algorithm
  */
 // int NeuralNetwork::get_inverse_neuron_index(int layer, int index) {
@@ -190,6 +190,21 @@ int NeuralNetwork::get_sinapsis_index(int starting_layer, int starting_index, in
   }
 
   return ret + N_nodes.at(starting_layer) * end_index + starting_index;
+}
+
+int NeuralNetwork::get_sinapsis_starting_layer(int index) {
+  int i;
+  int layer = 0;
+  int shift = 0;
+  while (shift + N_nodes.at(layer)* N_nodes.at(layer + 1) < index) {
+    shift += N_nodes.at(layer) * N_nodes.at(layer + 1);
+    layer += 1;
+    if (layer > N_hidden_layers) {
+      cerr << "Error, the index given exceeds the number of hidden layers" << endl;
+      throw "";
+    }
+  }
+  return layer;
 }
 
 int NeuralNetwork::get_npredictions() {

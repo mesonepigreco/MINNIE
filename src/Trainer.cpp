@@ -1,6 +1,7 @@
 #include "Trainer.hpp"
 #include <libconfig.h++>
 #include <math.h>
+#include "utils.hpp"
 
 using namespace std; 
 using namespace libconfig;
@@ -91,8 +92,8 @@ void Trainer::TrainAtomicNetwork(AtomicNetwork* target, bool precondition) {
     // Setup the final biases to reproduce the average energy
     if (precondition) {
         int n_typ = target->N_types;
-        double * av_energy_per_type = new double[n_typ]();
-        double * av_energy2_per_type = new double[n_typ]();
+        double av_energy_per_type;
+        double av_energy2_per_type;
         Atoms * config;
 
         for (int i = 0; i < training_set->GetNConfigs(); ++i) {
@@ -100,42 +101,62 @@ void Trainer::TrainAtomicNetwork(AtomicNetwork* target, bool precondition) {
             
             training_set->GetConfig(i, config);
 
-            for (int j = 0; j < n_typ; ++j) {
-                int n_of_type = 0;
-
-                // Count how many atoms of this type
-                for (int k = 0; k < config->GetNAtoms(); ++k) 
-                    if (config->types[k] == j)
-                        n_of_type++;
-
-                double e_net;
-                e_net =  energy * n_of_type / (double) config->GetNAtoms();
-                av_energy_per_type[j] += e_net / training_set->GetNConfigs();
-                av_energy2_per_type[j] += e_net * e_net/ training_set->GetNConfigs();
-            }
-            
-        }
-
-        NeuralNetwork * network;
+	    double e_net;
+	    // Get the fraction of the total energy by this atomic type
+	    e_net =  energy  / (double) config->GetNAtoms();
+	    av_energy_per_type += e_net / training_set->GetNConfigs();
+	    av_energy2_per_type += e_net * e_net/ training_set->GetNConfigs();
+	}
         double sigma;
+        NeuralNetwork * network;
         int n_last;
+
+	sigma = av_energy2_per_type - av_energy_per_type*av_energy_per_type;
+	sigma = sqrt(sigma);
+	
+	cout << "Average energy per type: " << av_energy_per_type << endl;
+	cout << "Sigma energy per type: " << sigma << endl;
+
         for (int j = 0; j < n_typ; ++j) {
             // Setup the last bias network
             network = target->GetNNFromElement(j);
 
-            network->set_biases_value(network->get_nbiases() - 1, av_energy_per_type[j]);
+            // All the biases to zero
+            for (int k = 0; k < network->get_nbiases()-1; ++k) 
+                network->set_biases_value(k, 0);
 
-            sigma = av_energy2_per_type[j] - av_energy_per_type[j] * av_energy_per_type[j];
+            network->set_biases_value(network->get_nbiases() - 1, av_energy_per_type);
+	        //network->set_biases_value(network->get_nbiases() - 1, 0);
+
+            // All the sinapsis must be initialized to 1 / sqrt(N_hidden)
+            int current_node = 0;
+            int shift = 0;
+            for (int k = 0; k < network->get_nsinapsis(); ++k)  {
+                sigma = 1 / sqrt(network->N_nodes.at(network->get_sinapsis_starting_layer(k)));
+                network->set_sinapsis_value(k, random_normal(0, sigma));
+            }
+
+
             n_last = network->N_nodes.at(network->N_hidden_layers);
-
-            sigma = sqrt(sigma/n_last);
+	    sigma = av_energy2_per_type - av_energy_per_type*av_energy_per_type;
+            //sigma = sqrt(sigma/n_last);
 	    sigma = 0;
-
             // Setup the last sinapsis
             for (int k = 0; k < n_last;++k) {
                 network->set_sinapsis_value( network->get_nsinapsis() - k - 1, sigma);
             }
+
         }
+        // Print all the biases
+        cout << "BIASES:" << endl;
+        for (int i = 0; i < network->get_nbiases(); ++i) 
+            cout << "bias(" << i << ") = " << network->get_biases_value(i) << endl;
+
+
+        // Test the energy prediction
+        training_set->GetConfig(0, config);
+        cout << "Predicted energy: " << target->GetEnergy(config) << endl;
+        cout << "Real energy: " << training_set->GetEnergy(0) << endl;
     }
 
     target->TrainNetwork(training_set, method, step, N_steps, use_lmin);

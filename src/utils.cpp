@@ -30,3 +30,14 @@ double pearson_correlation(int n, const double * predictions, const double * rea
 
   return r;
 }
+
+
+// Extract gaussian random numbers
+double random_normal(double m, double sigma) {
+  double X = rand() / (double) RAND_MAX;
+  double Y = rand() / (double) RAND_MAX;
+
+  double gauss = sqrt( - 2 * log(1 - Y)) * cos( 2 * M_PI * X);
+
+  return m + gauss * sigma;
+}

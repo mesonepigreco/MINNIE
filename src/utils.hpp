@@ -16,5 +16,9 @@ double pearson_correlation(int N, const double * v1,
 
 
 
+// Extract gaussian random numbers
+/* m = average; sigma = standard deviation */
+double random_normal(double m, double sigma);
+
 
 #endif
