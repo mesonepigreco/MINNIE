@@ -171,6 +171,9 @@ int NeuralNetwork::get_biases_index(int layer, int index) {
   return get_neuron_index(layer, index) - N_nodes.at(0);
 }
 
+double NeuralNetwork::get_neuron_value(int layer, int index) {
+  return neurons.at( get_neuron_index(layer, index));
+}
 /*
  * This get_sinapsis_starting_layer the neuron backward index, used in the backpropagation
  * algorithm

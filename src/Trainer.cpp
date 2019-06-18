@@ -133,15 +133,17 @@ void Trainer::TrainAtomicNetwork(AtomicNetwork* target, bool precondition) {
             int shift = 0;
             for (int k = 0; k < network->get_nsinapsis(); ++k)  {
                 sigma = 1 / sqrt(network->N_nodes.at(network->get_sinapsis_starting_layer(k)));
+                cout << "Setting layer " << network->get_sinapsis_starting_layer(k);
+                cout << " ; index = " << k << " ; sigma = " << sigma << endl;
                 network->set_sinapsis_value(k, random_normal(0, sigma));
             }
 
 
             n_last = network->N_nodes.at(network->N_hidden_layers);
-	    sigma = av_energy2_per_type - av_energy_per_type*av_energy_per_type;
-            //sigma = sqrt(sigma/n_last);
-	    sigma = 0;
-            // Setup the last sinapsis
+	        sigma = av_energy2_per_type - av_energy_per_type*av_energy_per_type;
+            sigma = sqrt(sigma/n_last);
+	        //sigma = 0;
+            // Setup the last sinapsis  
             for (int k = 0; k < n_last;++k) {
                 network->set_sinapsis_value( network->get_nsinapsis() - k - 1, sigma);
             }
@@ -152,11 +154,26 @@ void Trainer::TrainAtomicNetwork(AtomicNetwork* target, bool precondition) {
         for (int i = 0; i < network->get_nbiases(); ++i) 
             cout << "bias(" << i << ") = " << network->get_biases_value(i) << endl;
 
+        // Print all the biases
+        cout << "SINAPSIS:" << endl;
+        for (int i = 0; i < network->get_nsinapsis(); ++i) 
+            cout << "sinapsis(" << i << ") = " << network->get_sinapsis_value(i) << endl;
+
+        
+
 
         // Test the energy prediction
         training_set->GetConfig(0, config);
         cout << "Predicted energy: " << target->GetEnergy(config) << endl;
         cout << "Real energy: " << training_set->GetEnergy(0) << endl;
+
+        cout << endl << "Last layer neurons:" << endl;
+        for (int i = 0; i < network->N_nodes.at(network->N_hidden_layers); ++i) {
+            double sinp;
+            sinp = network->get_sinapsis_value( network->get_sinapsis_index(network->N_hidden_layers+1, i,0)) ;
+            cout << i << ") " <<  network->get_neuron_value(network->N_hidden_layers, i);
+            cout << "  " << sinp << " index = " << network->get_sinapsis_index(network->N_hidden_layers, i,0)<<  endl;
+        }
     }
 
     target->TrainNetwork(training_set, method, step, N_steps, use_lmin);

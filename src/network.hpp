@@ -224,6 +224,9 @@ public:
   void update_biases_value(int index, double value); // Sum the value to the current value of the biases
   void update_sinapsis_value(int index, double value);  
 
+  // Get the value of the selected neuron
+  double get_neuron_value(int layer, int index) ;
+
 
   // Find the index of a given sinapsis
   int get_neuron_index(int layer, int index);

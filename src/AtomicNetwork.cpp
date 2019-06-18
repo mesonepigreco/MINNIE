@@ -434,7 +434,7 @@ AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int 
     for (int i = 0; i < N_lim; ++i) {
         eigvals[i] = tmp_eigvals[i];
         for (int j = 0; j < N_sym; j++) {
-            eigvects[N_lim*j + i] = tmp_eigvects[N_lim * j + i];
+            eigvects[N_sym*i + j] = tmp_eigvects[N_sym * j + i];
         }
     }
     delete[] tmp_eigvals;

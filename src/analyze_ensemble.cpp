@@ -9,6 +9,8 @@
 
 using namespace boost;
 
+#define DEB_ANALENS 1
+
 bool AnalyzeSymmetries(const char * config_file) {
     Config cfg;
     // Try to open the configuration file
@@ -350,14 +352,14 @@ void GetCovarianceSymmetry(Ensemble * ens, SymmetricFunctions* symmf, int Nx, in
 
                 //cout << "Sym value (" << i << ") is " << sym_values[i] << endl;
                 //cout << "i = " << i << " / " << N_sym_tot << endl;
-                means[i] += sym_values[i];
+                means[i] += sym_values[i + N_sym_tot * h];
 
 
                 // Get the mean square
                 for (int j = 0; j < N_sym_tot; ++j) {
                     //cout << "j = " << j << " / " << N_sym_tot << "   cmat: " << N_sym_tot*i + j << " / " << N_sym_tot*N_sym_tot << endl;
 
-                    cov_mat[N_sym_tot*i + j] += sym_values[i] * sym_values[j];
+                    cov_mat[N_sym_tot*i + j] += sym_values[i + N_sym_tot * h] * sym_values[j + N_sym_tot * h];
                 }
             }
         }
@@ -375,11 +377,22 @@ void GetCovarianceSymmetry(Ensemble * ens, SymmetricFunctions* symmf, int Nx, in
         cov_mat[i] /= nat_tot;
 
     // Get the real covariance matrix by subtracting the one body averages
+    ofstream cov_file;
+    if (DEB_ANALENS) {
+        cov_file.open("CovarianceMatrix.dat");
+        cov_file << std::scientific;
+    }
     for (int i = 0; i < N_sym_tot; ++i) {
         for (int j = 0; j< N_sym_tot; ++j) {
             cov_mat[N_sym_tot*i + j] -= means[i] * means[j];
+            if (DEB_ANALENS)
+                cov_file << cov_mat[N_sym_tot * i + j] << " ";
         }
+        if (DEB_ANALENS)
+            cov_file << endl;
     }
+    if (DEB_ANALENS)
+        cov_file.close();
 }
 
 
