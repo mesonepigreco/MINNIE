@@ -22,6 +22,7 @@
 #define AN_NSYMS "N_syms"
 #define AN_EIGVECT "eigenvector_"
 #define AN_EIGVALS "variances"
+#define AN_EIGMEAN "average_values"
 #define AN_NTYPES "n_types"
 #define AN_ENVIRON "AtomicNetwork"
 #define AN_TYPELIST "types"
@@ -40,7 +41,8 @@ private:
     //int Nx, Ny, Nz;
 
     // PCA variables on the symmetric functions
-    double * eigvals, *eigvects;
+    // And the average value of the eigenvectors
+    double * eigvals, *eigvects, *mean_vals;
     int N_lim;
 
 

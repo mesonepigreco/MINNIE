@@ -85,6 +85,7 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
                 first_layer[j] = 0;
                 for (int k = 0; k < N_sym; ++k) 
                     first_layer[j] += eigvects[N_sym*j + k] * symm_fynctions[N_sym*i + k];
+                first_layer[j] -= mean_vals[j];
                 first_layer[j] /= sqrt(eigvals[j]);
             }
 
@@ -204,8 +205,10 @@ void AtomicNetwork::SaveCFG(const char * PREFIX) {
     PCA.add(AN_NLIM, Setting::TypeInt) = N_lim;
     PCA.add(AN_NSYMS, Setting::TypeInt) = N_syms;
     Setting &sigma2 = PCA.add(AN_EIGVALS, Setting::TypeArray);
+    Setting &means = PCA.add(AN_EIGMEAN, Setting::TypeArray);
     for (int i = 0; i < N_lim; ++i) {
         sigma2.add(Setting::TypeFloat) = eigvals[i];
+        means.add(Setting::TypeFloat) = mean_vals[i];
         Setting &ev = PCA.add(AN_EIGVECT + to_string(i), Setting::TypeArray);
         for (int j = 0; j < N_syms; ++j) {
             ev.add(Setting::TypeFloat) = eigvects[N_syms*i + j];
@@ -313,17 +316,20 @@ void AtomicNetwork::LoadCFG(const char * PREFIX) {
 
     eigvals = new double[N_lim];
     eigvects = new double[N_lim * N_syms];
+    mean_vals = new double[N_lim];
 
     try {
         const Setting& cfg_vals = pca[AN_EIGVALS];
-        
+        const Setting& cfg_vect_mean = pca[AN_EIGMEAN];
         for (int i = 0; i < N_lim; ++i) {
             eigvals[i] = cfg_vals[i];
+            mean_vals[i] = cfg_vect_mean[i];
             filename = string(AN_EIGVECT) + to_string(i);
             const Setting& cfg_v = pca[filename.c_str()];
             for (int j = 0; j < N_syms; ++j) {
                 eigvects[N_lim*j + i] = cfg_v[j];
             }
+
         }
     } catch (const SettingNotFoundException &e) {
         cerr << "Error, keyword " << e.getPath() << " not found" << endl; 
@@ -392,6 +398,7 @@ AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int 
     int N_sym = symf->GetTotalNSym(N_types);
 
 
+
     // Check if Nlim is bigger than N_syms
     if (N_lim > N_sym) {
         cerr << "Error, N_lim cannot exceed the number of symmetric functions " << N_sym << endl;
@@ -424,6 +431,7 @@ AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int 
 
     eigvals = new double[N_lim];
     eigvects = new double[N_lim * N_sym];
+    mean_vals = new double[N_lim];
 
     // Perform the PCA
     Diagonalize(cvar_mat, N_sym, tmp_eigvals, tmp_eigvects);
@@ -431,14 +439,20 @@ AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int 
     // We can free the memory for the covariance matrix
     delete[] cvar_mat;
     
+    // Copy the eigenvalues and eigenvectors
+    // And create the average values of the eigenvectors
+    // starting from the average values of the symmetric functions.
     for (int i = 0; i < N_lim; ++i) {
         eigvals[i] = tmp_eigvals[i];
+        mean_vals[i] = 0;
         for (int j = 0; j < N_sym; j++) {
             eigvects[N_sym*i + j] = tmp_eigvects[N_sym * j + i];
+            mean_vals[i] += eigvects[N_sym*i + j] * means[j];
         }
     }
     delete[] tmp_eigvals;
     delete[] tmp_eigvects;
+    delete[] means;
 
     symm_f = symf;
 
