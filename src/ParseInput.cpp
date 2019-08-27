@@ -434,10 +434,10 @@ void GetNetworkFromInput(const char * inputfile, AtomicNetwork * &network) {
 
         cout << "Building the atomic network..." << endl;
         network = new AtomicNetwork(symf, ensemble, Nlim, Nhidden, NULL, Nnodes);
-    } else if (MODE == M_LOAD) {
+    } else if (mode == M_LOAD) {
         string network_prefix;
         try {
-            if (!root.lookupValue(LOADNETWORK, network_prefix)) {
+            if (!network_env.lookupValue(LOADNETWORK, network_prefix)) {
                 cerr << "Error, within mode " << M_TEST << endl;
                 cerr << "       you need to provide the key: " << LOADNETWORK << endl;
                 exit(EXIT_FAILURE);

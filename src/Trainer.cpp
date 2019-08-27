@@ -111,43 +111,38 @@ void Trainer::TrainAtomicNetwork(AtomicNetwork* target, bool precondition) {
         NeuralNetwork * network;
         int n_last;
 
-	sigma = av_energy2_per_type - av_energy_per_type*av_energy_per_type;
-	sigma = sqrt(sigma);
+    sigma = 1;
+	//sigma = av_energy2_per_type - av_energy_per_type*av_energy_per_type;
+	//sigma = sqrt(sigma);
 	
-	cout << "Average energy per type: " << av_energy_per_type << endl;
-	cout << "Sigma energy per type: " << sigma << endl;
+	//cout << "Average energy per type: " << av_energy_per_type << endl;
+	//cout << "Sigma energy per type: " << sigma << endl;
 
         for (int j = 0; j < n_typ; ++j) {
             // Setup the last bias network
             network = target->GetNNFromElement(j);
 
             // All the biases to zero
-            for (int k = 0; k < network->get_nbiases()-1; ++k) 
+            for (int k = 0; k < network->get_nbiases(); ++k) 
                 network->set_biases_value(k, 0);
 
-            network->set_biases_value(network->get_nbiases() - 1, av_energy_per_type);
-	        //network->set_biases_value(network->get_nbiases() - 1, 0);
 
-            // All the sinapsis must be initialized to 1 / sqrt(N_hidden)
+            // All the sinapsis must be initialized using the Xavier (Glorot) scheme:
+            /*
+             *
+             * W ~ Normal ( sigma = sqrt(2) / sqrt(n_in + n_out))
+             * 
+             * Where n_in are the number  of input neurons and n_out are the number of output neurons.
+             */
             int current_node = 0;
             int shift = 0;
             for (int k = 0; k < network->get_nsinapsis(); ++k)  {
-                sigma = 1 / sqrt(network->N_nodes.at(network->get_sinapsis_starting_layer(k)));
-                cout << "Setting layer " << network->get_sinapsis_starting_layer(k);
-                cout << " ; index = " << k << " ; sigma = " << sigma << endl;
+                int N_in = network->N_nodes.at(network->get_sinapsis_starting_layer(k));
+                int N_out = network->N_nodes.at(network->get_sinapsis_starting_layer(k) + 1);
+                sigma = sqrt(2) / sqrt(N_in + N_out);
+                cout << "Synapsis " << k << " | Layer from " << N_in << " to " << N_out << endl;
                 network->set_sinapsis_value(k, random_normal(0, sigma));
             }
-
-
-            n_last = network->N_nodes.at(network->N_hidden_layers);
-	        sigma = av_energy2_per_type - av_energy_per_type*av_energy_per_type;
-            sigma = sqrt(sigma/n_last);
-	        //sigma = 0;
-            // Setup the last sinapsis  
-            for (int k = 0; k < n_last;++k) {
-                network->set_sinapsis_value( network->get_nsinapsis() - k - 1, sigma);
-            }
-
         }
         // Print all the biases
         cout << "BIASES:" << endl;
@@ -164,7 +159,8 @@ void Trainer::TrainAtomicNetwork(AtomicNetwork* target, bool precondition) {
 
         // Test the energy prediction
         training_set->GetConfig(0, config);
-        cout << "Predicted energy: " << target->GetEnergy(config) << endl;
+        double energy_predicted = target->GetEnergy(config);
+        cout << "Predicted energy: " << energy_predicted << endl;
         cout << "Real energy: " << training_set->GetEnergy(0) << endl;
 
         cout << endl << "Last layer neurons:" << endl;
@@ -174,6 +170,9 @@ void Trainer::TrainAtomicNetwork(AtomicNetwork* target, bool precondition) {
             cout << i << ") " <<  network->get_neuron_value(network->N_hidden_layers, i);
             cout << "  " << sinp << " index = " << network->get_sinapsis_index(network->N_hidden_layers, i,0)<<  endl;
         }
+
+        cout << "The energy layer:" << endl;
+        cout << "Last" << ") " <<  network->get_neuron_value(network->N_hidden_layers + 1, 0) << endl;
     }
 
     target->TrainNetwork(training_set, method, step, N_steps, use_lmin);
