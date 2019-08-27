@@ -22,6 +22,8 @@
 #define AN_NSYMS "N_syms"
 #define AN_EIGVECT "eigenvector_"
 #define AN_EIGVALS "variances"
+#define AN_OUTMEAN "output_energy_mean"
+#define AN_OUTSIGMA "output_energy_sigma"
 #define AN_EIGMEAN "average_values"
 #define AN_NTYPES "n_types"
 #define AN_ENVIRON "AtomicNetwork"
@@ -43,6 +45,9 @@ private:
     // PCA variables on the symmetric functions
     // And the average value of the eigenvectors
     double * eigvals, *eigvects, *mean_vals;
+
+    // Do the same with the output energy
+    vector<double> output_energy_mean, output_energy_sigma;
     int N_lim;
 
 

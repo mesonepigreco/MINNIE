@@ -3,44 +3,9 @@
 
 #include <libconfig.h++>
 
-#include "AtomicNetwork.hpp"
+#include "ParseInput.hpp"
 
-// Define the namespace of the configuration file
-#define MODE "mode"
-
-
-// Allowed modes are
-#define M_GENERATE "generate"
-#define M_LOAD "load"
-#define M_TEST "test"
-#define M_TEST_NEURON "neuro-test"
-
-#define NETWORK_ENVIRONMENT "AtomicNetwork"
-
-// If the mode is generate, you must insert the parameter of the NN
-#define NLIM "n_lim"
-// All the other environments are Symmetric functions and ensemble
-#define NHIDDEN "n_hidden"
-#define NPERLAYER "nodes_per_layer"
-#define SAVE_PREFIX "save_prefix"
-#define NX "N_sup_x"
-#define NY "N_sup_y"
-#define NZ "N_sup_z"
-
-// All the keywords in the test mode
-#define LOADNETWORK "load_nn_prefix"
-#define CONFIG_FILE "test_config"
-#define ATM_INDEX "atom_index"
-#define ATM_COORD "atom_coord"
-#define TEST_KIND "neuro_kind"
-#define TEST_SINAPSIS "sinapsis"
-#define TEST_BIAS "bias"
-#define TEST_INDEX "neuro_index"
-#define TEST_TYPE "neuro_type"
-#define STEP_SIZE "step_size"
-#define N_STEPS "n_steps"
-
-
+#define DEBUG_PI 0
 using namespace std;
 using namespace libconfig;
 
@@ -50,6 +15,11 @@ using namespace libconfig;
 void ParseInput(const char * inputfile) {
 
     Config cfg;
+
+    if (DEBUG_PI) {
+        cout << "Inside parse input." << endl;
+        cout << "Reading the input file: " << inputfile << endl;
+    }
 
     // Try to open the configuration file
     try {
@@ -101,6 +71,10 @@ void ParseInput(const char * inputfile) {
         cerr << "Please, check more carefully your input." << endl;
         throw;
     }
+
+    if (DEBUG_PI) {
+        cout << "Reading the mode and proceed..." <<endl;
+     }
 
     // Parse the mode
     if (mode == M_GENERATE) {
@@ -160,6 +134,10 @@ void ParseInput(const char * inputfile) {
         atm->SaveCFG(save_prefix.c_str());
     } else if (mode == M_TEST || mode == M_TEST_NEURON) {
         // Perform the test on the neural network
+
+        if (DEBUG_PI) {
+            cout << "Mode found: " << mode << endl;
+        }
 
         // Get the wanted network
         string network_prefix;
@@ -233,7 +211,9 @@ void ParseInput(const char * inputfile) {
             throw;
         }
 
-
+        if (DEBUG_PI) {
+            cout << "Generating the neural network..." << endl;
+        }
 
         // Load the atomic neural network
         AtomicNetwork * atomic_network = new AtomicNetwork(network_prefix.c_str());
@@ -243,6 +223,10 @@ void ParseInput(const char * inputfile) {
         Ensemble * ensemble;
 
 
+        if (DEBUG_PI) {
+            cout << "Network generated, reading the configurations..." << endl;
+        }
+
         if (mode == M_TEST) 
             config = new Atoms(configuration_fname);
         else
@@ -251,6 +235,9 @@ void ParseInput(const char * inputfile) {
             ensemble->LoadFromCFG(inputfile);
         }
         
+        if (DEBUG_PI) {
+            cout << "Allocating memory for forces and gradients..." << endl;
+        }
 
 
         // Check that the input is consistent with the given configuration
@@ -271,6 +258,10 @@ void ParseInput(const char * inputfile) {
 
         double ** grad_biases = new double * [atomic_network->N_types];
         double ** grad_sinapsis = new double * [atomic_network->N_types];
+
+        if (DEBUG_PI) {
+            cout << "Allocating memory for forces and gradients..." << endl;
+        }
 
         if (mode == M_TEST_NEURON) {
             for (int i = 0; i < atomic_network->N_types; ++i) {

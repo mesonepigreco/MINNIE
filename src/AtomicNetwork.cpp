@@ -15,6 +15,9 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
     double dumb = 1;
     int type;
 
+    if (AN_DEB) {
+        cout << "I'm inside GetEnergy." << endl;
+    }
 
     bool back_propagation = false;
 
@@ -66,11 +69,14 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
         // Send into the neural network
         type = coords->types[i];
         GetNNFromElement(type)->PredictFeatures(1, first_layer, &E_i);
+        // Let us rescale the last layer
+
+        E_i = output_energy_mean.at(type) + output_energy_sigma.at(type) * E_i;
         E_tot += E_i;
 
         // If we need only the force, we can compute them
         if (back_propagation) {
-            GetNNFromElement(type)->GetForces(tmp_forces + N_lim*i);
+            GetNNFromElement(type)->GetForces(tmp_forces + N_lim*i, output_energy_sigma.at(type));
         }
     }
 
@@ -95,7 +101,7 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
 
             // Set the last node to the gradient of the loss function with respect to the atomic energy
-            dumb = 2 * (E_tot - target_energy) / N_atms;
+            dumb = 2 * (E_tot - target_energy) / N_atms * output_energy_sigma.at(type);
 
             // Backpropagate the last node to get the gradient of biases and sinapsis
             GetNNFromElement(type)->StepDescent(&dumb, grad_bias[type], grad_sinapsis[type], NULL);
@@ -194,6 +200,14 @@ void AtomicNetwork::SaveCFG(const char * PREFIX) {
     Setting &types = AN.add(AN_TYPELIST, Setting::TypeArray);
     for (int i = 0; i < N_types; ++i) {
         types.add(Setting::TypeInt) = atomic_types.at(i);
+    }
+
+    // Add the output values
+    Setting & out_enmean_s = root.add(AN_OUTMEAN, Setting::TypeArray); 
+    Setting & out_ensigma_s = root.add(AN_OUTSIGMA, Setting::TypeArray); 
+    for (int i = 0; i < N_types; ++i) {
+        out_enmean_s.add(Setting::TypeFloat) = output_energy_mean.at(i);
+        out_ensigma_s.add(Setting::TypeFloat) = output_energy_sigma.at(i);
     }
 
     int N_syms;
@@ -342,6 +356,41 @@ void AtomicNetwork::LoadCFG(const char * PREFIX) {
         throw;
     }
 
+    // Check if the output energy exists
+
+    // Analyze the energies
+    output_energy_mean.clear();
+    output_energy_sigma.clear();
+    try {
+        if (main_cfg.exists(AN_OUTMEAN)) {
+            const Setting& outmean_s = root[AN_OUTMEAN];
+            for (int i = 0; i < N_types; ++i) {
+                output_energy_mean.push_back(outmean_s[i]);
+            }
+        } else {
+            for (int i = 0; i < N_types; ++i) {
+                output_energy_mean.push_back(0);
+            }
+        } 
+        
+        if (main_cfg.exists(AN_OUTSIGMA)) {
+            const Setting& outsigma_s = root[AN_OUTMEAN];
+            for (int i = 0; i < N_types; ++i) {
+                output_energy_sigma.push_back(outsigma_s[i]);
+            }
+        }else {
+            for (int i = 0; i < N_types; ++i) {
+                output_energy_sigma.push_back(1);
+            }
+        } 
+    } catch (const SettingTypeException &e) {
+        cerr << "Error, keyword " << e.getPath() << " has wrong type (expected float)" << endl;
+        throw;
+    } catch ( const SettingException &e) {
+        cerr << "Error with keyword " << e.getPath() << ". Please, check carefully" << endl;
+        throw;
+    }
+
     // Read the Atomic networks
     NeuralNetwork* atomic_nn;
     for (int i = 0; i < N_types; ++i) {
@@ -372,6 +421,9 @@ AtomicNetwork::~AtomicNetwork() {
 
     atomic_network.clear();
     atomic_types.clear();
+
+    output_energy_mean.clear();
+    output_energy_sigma.clear();
 
     delete symm_f;
 
@@ -475,6 +527,28 @@ AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int 
     for (int i = 0; i < N_types; ++i) {
         NeuralNetwork* nn = new NeuralNetwork(N_lim, 1, Nhidden, nphl, nhl);
         atomic_network.push_back(nn);
+    }
+
+
+    // Analyze the energies and normalize the last value
+    output_energy_mean.clear();
+    output_energy_sigma.clear();
+    for (int index = 0; index < N_types; ++index) {
+        double m2 = 0;
+        double en = 0;
+        double m = 0;
+        for (int i = 0; i <ensemble->GetNConfigs(); ++i) {
+            // Energy per atom
+            en = ensemble->GetEnergy(i) / ensemble->GetNConfigs();
+            ensemble->GetConfig(i, config);
+            m += en;
+            m2 += en*en;
+        }
+        m /= ensemble->GetNConfigs();
+        m2 /= ensemble->GetNConfigs();
+
+        output_energy_mean.push_back(m);
+        output_energy_sigma.push_back(sqrt(m2 - m*m));
     }
 }
 

@@ -160,10 +160,11 @@ public:
 
   /*
    * Compute the forces.
-   * The rescaling must be setted to true if you want to predict forces in the same units as the training set. Otherwise
+   * The rescale out parameter is setted so that it takes into account the
+   * last value.
    * the NN normalized units are used.
    */
-  void GetForces(double * forces, bool rescale = false);
+  void GetForces(double * forces, double rescale_out = 1);
 
   /*
    * The following operation process the n_data features into the network

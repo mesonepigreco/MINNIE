@@ -1020,9 +1020,9 @@ NeuralNetwork::NeuralNetwork(string filename) {
 }
 
 
-void NeuralNetwork::GetForces(double * forces, bool rescale) {
+void NeuralNetwork::GetForces(double * forces, double rescale_out) {
   // Allocate dumb variables
-  double dumb = -1;
+  double dumb = -rescale_out;
   double * g1 = (double*)malloc(sizeof(double) * biases.size());
   double * g2 = (double*)malloc(sizeof(double) * sinapsis.size());
 
@@ -1031,12 +1031,6 @@ void NeuralNetwork::GetForces(double * forces, bool rescale) {
 
   // Compute the forces
   StepDescent( & dumb, g1, g2, forces);
-
-  // Rescale the force unit if required
-  if (rescale) {
-    for (int i = 0; i < N_nodes.at(0); ++i)
-      forces[i] *= output_sigma[0] / input_sigma[i];
-  }
 
   // Free memory
   free(g1);

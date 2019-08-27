@@ -210,3 +210,13 @@ void Atoms::SetEnergyForce(double en, const double * forc) {
     forces[i] = forc[i];
   }
 } */
+
+
+int Atoms::GetNAtomsPerType(int type) {
+  // Look how many atoms are in the given type
+  int ret = 0;
+  for (int i = 0; i < N_atoms; ++i) {
+    if (type == types[i]) ret++;
+  }
+  return ret;
+}

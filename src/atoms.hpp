@@ -65,6 +65,8 @@ public:
    * also.
    */
   //void SetEnergyForce(double energy, const double * force);
+
+  int GetNAtomsPerType(int type);
 };
 
 #endif
