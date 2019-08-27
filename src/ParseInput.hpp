@@ -47,6 +47,9 @@ void ParseInput(const char * inputfile) ;
 
 /*
  * This function geneates the network from the input.
+ * 
+ *  Returns: TRUE if the network is new (Precondition needed)
+ *           FALSE if the network has been loaded from file.
  */
-void GetNetworkFromInput(const char * inputfile, AtomicNetwork * &network) ;
+bool GetNetworkFromInput(const char * inputfile, AtomicNetwork * &network) ;
 #endif

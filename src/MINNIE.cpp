@@ -20,7 +20,7 @@ int main (int argc, char * argv[]) {
 
     // Read the atomic network
     AtomicNetwork * network;
-    GetNetworkFromInput(argv[1], network);
+    bool initialize_params = GetNetworkFromInput(argv[1], network);
 
 
 
@@ -34,7 +34,7 @@ int main (int argc, char * argv[]) {
         cout << "MODE: TRAIN" << endl;
 
         Trainer * trainer = new Trainer(argv[1]);
-        trainer->TrainAtomicNetwork(network, true);
+        trainer->TrainAtomicNetwork(network, initialize_params);
 
         cout << "Train completed." << endl;
         cout << "Saving the results into PREFIX = " << trainer->save_prefix.c_str() << endl;

@@ -346,7 +346,7 @@ void ParseInput(const char * inputfile) {
 
 
 
-void GetNetworkFromInput(const char * inputfile, AtomicNetwork * &network) {
+bool GetNetworkFromInput(const char * inputfile, AtomicNetwork * &network) {
 
     Config cfg;
 
@@ -363,7 +363,12 @@ void GetNetworkFromInput(const char * inputfile, AtomicNetwork * &network) {
         throw;
     }
 
-
+    // This is the return value.
+    // If the network is newly generated, return true
+    // Otherwise, return false.
+    // It is used to check if initialization with precondition
+    // Must be done.
+    bool is_new; 
 
     // Get the mode
     const Setting& root = cfg.getRoot();
@@ -385,6 +390,7 @@ void GetNetworkFromInput(const char * inputfile, AtomicNetwork * &network) {
 
     // Parse the mode
     if (mode == M_GENERATE) {
+        is_new = true;
         cout << "Using mode " << M_GENERATE << "..." << endl;
 
         // Read the network parameters
@@ -435,6 +441,7 @@ void GetNetworkFromInput(const char * inputfile, AtomicNetwork * &network) {
         cout << "Building the atomic network..." << endl;
         network = new AtomicNetwork(symf, ensemble, Nlim, Nhidden, NULL, Nnodes);
     } else if (mode == M_LOAD) {
+        is_new = false;
         string network_prefix;
         try {
             if (!network_env.lookupValue(LOADNETWORK, network_prefix)) {
@@ -463,4 +470,6 @@ void GetNetworkFromInput(const char * inputfile, AtomicNetwork * &network) {
         cerr << "Error, the parameter: " << MODE << " given (" << mode.c_str() << ") is not supported." << endl;
         throw "";
     }
+
+    return is_new;
 }
