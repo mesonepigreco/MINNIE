@@ -2,7 +2,7 @@
 #include <math.h>
 
 // A debugging flag
-#define AN_DEB 0
+#define AN_DEB 1
 
 double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny, int Nz, double ** grad_bias, double ** grad_sinapsis, double target_energy ) {
     int N_atms = coords->GetNAtoms();
@@ -61,6 +61,9 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
             first_layer[j] = 0;
             for (int k = 0; k < N_sym; ++k) 
                 first_layer[j] += eigvects[N_sym*j + k] * symm_fynctions[N_sym*i + k];
+            
+            // Rescale the mean value
+            first_layer[j] -= mean_vals[j];
             first_layer[j] /= sqrt(eigvals[j]);
 
             if (AN_DEB) printf("# First layer [%d] of atom %d is : %.8e\n", j, i, first_layer[j]);
@@ -70,6 +73,12 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
         type = coords->types[i];
         GetNNFromElement(type)->PredictFeatures(1, first_layer, &E_i);
         // Let us rescale the last layer
+
+        if (AN_DEB) {
+            cout << "# Output neuron = " << E_i << " | m = " <<
+                output_energy_mean.at(type) << " sigma = " <<
+                output_energy_sigma.at(type) << endl;
+        }
 
         E_i = output_energy_mean.at(type) + output_energy_sigma.at(type) * E_i;
         E_tot += E_i;
@@ -539,8 +548,8 @@ AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int 
         double m = 0;
         for (int i = 0; i <ensemble->GetNConfigs(); ++i) {
             // Energy per atom
-            en = ensemble->GetEnergy(i) / ensemble->GetNConfigs();
             ensemble->GetConfig(i, config);
+            en = ensemble->GetEnergy(i) / config->GetNAtoms();
             m += en;
             m2 += en*en;
         }

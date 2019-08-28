@@ -199,7 +199,7 @@ int NeuralNetwork::get_sinapsis_starting_layer(int index) {
   int i;
   int layer = 0;
   int shift = 0;
-  while (shift + N_nodes.at(layer)* N_nodes.at(layer + 1) < index) {
+  while (shift + N_nodes.at(layer)* N_nodes.at(layer + 1) <= index) {
     shift += N_nodes.at(layer) * N_nodes.at(layer + 1);
     layer += 1;
     if (layer > N_hidden_layers) {

@@ -23,8 +23,6 @@ int main (int argc, char * argv[]) {
     bool initialize_params = GetNetworkFromInput(argv[1], network);
 
 
-
-
     // Pick the mode
     string mode(argv[2]);
 

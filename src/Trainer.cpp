@@ -160,8 +160,15 @@ void Trainer::TrainAtomicNetwork(AtomicNetwork* target, bool precondition) {
         // Test the energy prediction
         training_set->GetConfig(0, config);
         double energy_predicted = target->GetEnergy(config);
+        cout << endl;
+        cout << "N atoms: " << config->GetNAtoms() << endl;
         cout << "Predicted energy: " << energy_predicted << endl;
         cout << "Real energy: " << training_set->GetEnergy(0) << endl;
+
+        cout << endl << "Input layer (after sym functions)" << endl;
+        for (int i = 0; i < network->N_nodes.at(0); ++i) {
+            cout << i << ")  neuron = " << network->get_neuron_value(0,i) << endl;
+        }
 
         cout << endl << "Last layer neurons:" << endl;
         for (int i = 0; i < network->N_nodes.at(network->N_hidden_layers); ++i) {
