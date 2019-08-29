@@ -7,6 +7,7 @@
 
 #define N_ARGS 2
 #define MODE_TRAIN "--train"
+#define MODE_TEST "--test"
 #define MODE_PREDICT "--predict"
 
 using namespace std;
@@ -39,6 +40,27 @@ int main (int argc, char * argv[]) {
 
         network->SaveCFG(trainer->save_prefix.c_str());
         cout << "Done.";
+    } else if (mode == MODE_TEST) {
+        // Load the ensemble
+        Ensemble * ensemble = new Ensemble();
+        ensemble->LoadFromCFG(argv[1]);
+
+        // Run the neural network for each configuration
+        // And print energies in stdout (then)
+
+        cout << "# Conf ID; Real Energy; Predicted energy" << endl;
+        double pred_en;
+        for (int i = 0; i < ensemble->GetNConfigs(); ++i) {
+            // Get the atomic configuration
+            Atoms * conf;
+            ensemble->GetConfig(i, conf);
+
+            pred_en = network->GetEnergy(conf, NULL, ensemble->N_x, ensemble->N_y, ensemble->N_z);
+
+            cout << std::fixed << i << "\t" << std::scientific;
+            cout << ensemble->GetEnergy(i) <<  "\t";
+            cout << pred_en << endl;
+        }
     } else {
         cerr << "Error, the mode " << mode.c_str() << " has still not been implemented." << endl;
         return EXIT_FAILURE;

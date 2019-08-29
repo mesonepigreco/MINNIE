@@ -2,7 +2,7 @@
 #include <math.h>
 
 // A debugging flag
-#define AN_DEB 1
+#define AN_DEB 0
 
 double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny, int Nz, double ** grad_bias, double ** grad_sinapsis, double target_energy ) {
     int N_atms = coords->GetNAtoms();
@@ -350,7 +350,7 @@ void AtomicNetwork::LoadCFG(const char * PREFIX) {
             filename = string(AN_EIGVECT) + to_string(i);
             const Setting& cfg_v = pca[filename.c_str()];
             for (int j = 0; j < N_syms; ++j) {
-                eigvects[N_lim*j + i] = cfg_v[j];
+                eigvects[N_syms*i + j] = cfg_v[j];
             }
 
         }
@@ -383,7 +383,7 @@ void AtomicNetwork::LoadCFG(const char * PREFIX) {
         } 
         
         if (main_cfg.exists(AN_OUTSIGMA)) {
-            const Setting& outsigma_s = root[AN_OUTMEAN];
+            const Setting& outsigma_s = root[AN_OUTSIGMA];
             for (int i = 0; i < N_types; ++i) {
                 output_energy_sigma.push_back(outsigma_s[i]);
             }
