@@ -67,6 +67,8 @@ void Trainer::SetupFromCFG(const char * file) {
         train_env.lookupValue(TRAINER_METHOD, method);
         step = train_env.lookup(TRAINER_STEP);
         N_steps = train_env.lookup(TRAINER_NITERS);
+        if (train_env.exists(TRAINER_TEMP))
+            temperature = train_env.lookup(TRAINER_TEMP);
         train_env.lookupValue(TRAINER_USE_LMIN, use_lmin);
         if (! train_env.lookupValue(TRAINER_SAVE_PREFIX, save_prefix)) {
             cerr << "Error, you need to specify the " << TRAINER_SAVE_PREFIX <<" inside the " << TRAINER_KEYWORD << " environ." << endl;
@@ -182,5 +184,5 @@ void Trainer::TrainAtomicNetwork(AtomicNetwork* target, bool precondition) {
         cout << "Last" << ") " <<  network->get_neuron_value(network->N_hidden_layers + 1, 0) << endl;
     }
 
-    target->TrainNetwork(training_set, method, step, N_steps, use_lmin);
+    target->TrainNetwork(training_set, method, step, N_steps, use_lmin, temperature);
 }

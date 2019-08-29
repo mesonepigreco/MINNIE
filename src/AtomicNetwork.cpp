@@ -1,5 +1,8 @@
 #include "AtomicNetwork.hpp"
+#include "utils.hpp"
 #include <math.h>
+#include <chrono>
+#include <stdlib.h>
 
 // A debugging flag
 #define AN_DEB 0
@@ -626,12 +629,13 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
 }
 
 
-void AtomicNetwork::TrainNetwork(Ensemble * training_set, string method, double step, int N_steps, bool use_lmin) {
+void AtomicNetwork::TrainNetwork(Ensemble * training_set, string method, double step, int N_steps, bool use_lmin, double T) {
 
     // Allocate the gradient biases and sinapsis for the whole atomic network 
     int n_networks = atomic_network.size();
     int n_biases_max = -1, n_sinapsis_max = -1;
     int tmp;
+    int N_discard = 0;
 
     double ** grad_biases = new double*[n_networks];
     double ** grad_sinapsis = new double *[n_networks];
@@ -649,6 +653,7 @@ void AtomicNetwork::TrainNetwork(Ensemble * training_set, string method, double 
     double weight_energy, weight_force;
 
     double total_gradient = 0;
+    double T_cooling = 1 - 1 / (double) N_steps;
 
     // Check the minimization method
     if (method == AN_TRAINSD) {
@@ -665,7 +670,7 @@ void AtomicNetwork::TrainNetwork(Ensemble * training_set, string method, double 
     }
 
     for (int ka = 0; ka < N_steps; ++ka) {
-        
+        auto start_step = chrono::system_clock::now();
         // Clean the gradient 
         for (int i = 0; i < n_networks; ++i) {
             for (int j = 0; j < atomic_network.at(i)->get_nbiases(); ++j)
@@ -677,8 +682,14 @@ void AtomicNetwork::TrainNetwork(Ensemble * training_set, string method, double 
 
         loss = GetLossGradient(training_set, weight_energy, weight_force, grad_biases, grad_sinapsis);
 
+        // Print the info
+        cout << " ===== STEP " << ka <<  " =====" << endl;
+        cout << endl;
+        cout << " Current Loss Function: " << scientific << loss << endl;
+
         // Perform the optimization step
         if (method == AN_TRAINSD) {
+            // Update the weights
             for (int i = 0; i < n_networks; ++i) {
                 for (int j = 0; j < atomic_network.at(i)->get_nbiases(); ++j)  
                     atomic_network.at(i)->update_biases_value(j, - grad_biases[i][j] * step);
@@ -686,27 +697,91 @@ void AtomicNetwork::TrainNetwork(Ensemble * training_set, string method, double 
                 for (int j = 0; j < atomic_network.at(i)->get_nsinapsis(); ++j)
                     atomic_network.at(i)->update_sinapsis_value(j, - grad_sinapsis[i][j] *step);
             }
+
+            // Get the modulus of the gradient to print it
+            total_gradient = 0;
+            for (int i = 0; i < n_networks; ++i) {
+                for (int j = 0; j < atomic_network.at(i)->get_nbiases(); ++j)  
+                    total_gradient +=  grad_biases[i][j] * grad_biases[i][j];
+                
+                for (int j = 0; j < atomic_network.at(i)->get_nsinapsis(); ++j)
+                    total_gradient +=  grad_sinapsis[i][j] * grad_sinapsis[i][j];
+            }
+
+            cout << " Total gradient: " << sqrt(total_gradient) << endl;
+            cout << endl;
+        } else if (method == AN_TRAINMC) {
+            // This is the Montecarlo, it requires a random steps
+            // Lets save iside the gradient of basis and synapsis the step
+
+
+            for (int i = 0; i < n_networks; ++i) {
+                for (int j = 0; j < atomic_network.at(i)->get_nbiases(); ++j)  {
+                    // Extract the random value
+                    grad_biases[i][j] = random_normal(0, 1);
+                    atomic_network.at(i)->update_biases_value(j, - grad_biases[i][j] * step);
+                }
+                
+                for (int j = 0; j < atomic_network.at(i)->get_nsinapsis(); ++j) {
+                    grad_sinapsis[i][j] = random_normal(0, 1);
+                    atomic_network.at(i)->update_sinapsis_value(j, - grad_sinapsis[i][j] *step);
+                }
+            }
+
+            // Compute a new Loss
+            double second_loss = GetLossGradient(training_set, weight_energy, weight_force, NULL, NULL);
+
+            // Print the second loss
+            cout << " Loss function after the random step: " << second_loss << endl;
+            if (second_loss > loss) {
+                // Check the temperature
+                double random  = drand48();
+                cout << " Extracted " << random << " VS " << exp( - (second_loss - loss) / T) << endl;
+                
+                if ( random <   exp( - (second_loss - loss) / T)) {
+                    cout << " Accepted!" << endl << endl;
+                } else {
+                    cout << " Rejected!" << endl << endl;
+                    N_discard++;
+                    // Return back to the old value
+                    for (int i = 0; i < n_networks; ++i) {
+                        for (int j = 0; j < atomic_network.at(i)->get_nbiases(); ++j)  {
+                            atomic_network.at(i)->update_biases_value(j, + grad_biases[i][j] * step);
+                        }
+                        
+                        for (int j = 0; j < atomic_network.at(i)->get_nsinapsis(); ++j) {
+                            atomic_network.at(i)->update_sinapsis_value(j, + grad_sinapsis[i][j] *step);
+                        }
+                    }
+                }
+            }
+
+            // Update the temperture
+            T *= T_cooling;
+            cout << " New temperature: " << T <<endl;
+
+            // Line minimization
+            if (use_lmin && ka % 10 == 0) {
+                // Check that the average acceptance ratio is about 0.5
+                if (N_discard < 4) step *= 1.2;
+                if (N_discard > 6) step /= 1.2;  
+
+                cout << " Line minimization:" << endl;
+                cout << "    discard ratio = " << fixed << N_discard / 10. << endl;
+                cout << "    new step      = " << scientific << step << endl;
+                N_discard = 0;
+            }
         } else {
             cerr << "Method " << method.c_str() << " not yet implemented." << endl;
             exit(EXIT_FAILURE);
         }
 
-        // Get the total gradient
-        total_gradient = 0;
-        for (int i = 0; i < n_networks; ++i) {
-            for (int j = 0; j < atomic_network.at(i)->get_nbiases(); ++j)  
-                total_gradient +=  grad_biases[i][j] * grad_biases[i][j];
-            
-            for (int j = 0; j < atomic_network.at(i)->get_nsinapsis(); ++j)
-                total_gradient +=  grad_sinapsis[i][j] * grad_sinapsis[i][j];
-        }
+        auto after_step = chrono::system_clock::now();
 
-        // Print the info
-        cout << " ===== STEP " << ka <<  " =====" << endl;
-        cout << endl;
-        cout << " Current Loss Function: " << scientific << loss << endl;
-        cout << " Total gradient: " << total_gradient << endl;
-        cout << endl;
+        // Timing print
+        auto tot_elapsed = chrono::duration_cast<chrono::milliseconds>(after_step - start_step);
+        cout << " Total time elapsed: " << fixed << tot_elapsed.count() << " ms" << endl;
+        cout << endl; 
         cout << fixed;
         
     }

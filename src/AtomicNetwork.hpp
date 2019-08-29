@@ -125,7 +125,7 @@ public:
      *      use_lmin :
      *          If True (default) the step will be optimized during the optimization.
      */
-    void TrainNetwork(Ensemble * training_set, string method, double step, int N_steps, bool use_lmin = true);
+    void TrainNetwork(Ensemble * training_set, string method, double step, int N_steps, bool use_lmin = true, double T = 1);
 
 
     /*

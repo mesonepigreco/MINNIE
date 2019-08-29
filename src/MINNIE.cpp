@@ -4,6 +4,7 @@
 #include "AtomicNetwork.hpp"
 #include "ensemble.hpp"
 #include "Trainer.hpp"
+#include <stdlib.h>
 
 #define N_ARGS 2
 #define MODE_TRAIN "--train"
@@ -18,6 +19,9 @@ int main (int argc, char * argv[]) {
         PrintUsage();
         return EXIT_FAILURE;
     }
+
+    // Seed initialization  
+    srand48(123);
 
     // Read the atomic network
     AtomicNetwork * network;
