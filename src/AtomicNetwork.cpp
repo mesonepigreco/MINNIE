@@ -761,7 +761,7 @@ void AtomicNetwork::TrainNetwork(Ensemble * training_set, string method, double 
             cout << " New temperature: " << T <<endl;
 
             // Line minimization
-            if (use_lmin && ka % 10 == 0) {
+            if (use_lmin && (ka+1) % 10 == 0) {
                 // Check that the average acceptance ratio is about 0.5
                 if (N_discard < 4) step *= 1.2;
                 if (N_discard > 6) step /= 1.2;  
