@@ -625,7 +625,7 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
 
         delete[] forces;
     }
-    return loss;
+    return loss / n_conf;
 }
 
 
