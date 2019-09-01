@@ -65,6 +65,31 @@ int main (int argc, char * argv[]) {
             cout << ensemble->GetEnergy(i) <<  "\t";
             cout << pred_en << endl;
         }
+    } else if (mode == MODE_PREDICT) {
+        // Write on output both the energy and the forces
+        Ensemble * ensemble = new Ensemble();
+        ensemble->LoadFromCFG(argv[1]);
+
+        cout << "# Predicting energies and forces..." << endl;
+
+        for(int i = 0; i < ensemble->GetNConfigs(); ++i) {
+            Atoms * conf;
+            ensemble->GetConfig(i, conf);
+
+            double * force = new double[conf->GetNAtoms() * 3];
+            double energy;
+            energy = network->GetEnergy(conf, force, ensemble->N_x, ensemble->N_y, ensemble->N_z);
+
+            cout << endl;
+            cout << "# Configuration " << i + 1 << endl;
+            cout << "Energy : " << std::fixed << energy << " Ry" << endl;
+            cout << "Total forces [Ry/Bohr]:" << endl;
+            for (int j = 0; j < conf->GetNAtoms(); ++j) {
+                cout << std::scientific << force[3*j] << "\t" << force[3*j + 1] << "\t" << force[3*j + 2] << endl;
+            }
+            cout << endl;
+        }
+
     } else {
         cerr << "Error, the mode " << mode.c_str() << " has still not been implemented." << endl;
         return EXIT_FAILURE;

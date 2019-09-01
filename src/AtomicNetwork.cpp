@@ -620,7 +620,7 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
         loss += weight_energy *(energy - training_set->GetEnergy(i) )*(energy - training_set->GetEnergy(i)) / (config->GetNAtoms());
 
         for (int j = 0; j < config->GetNAtoms() * 3; ++j) {
-            loss += weight_forces * (forces[j] - training_set->GetForce(i, j/3, j%3))* (forces[j] - training_set->GetForce(i, j/3, j%3));
+            loss += weight_forces * (forces[j] - training_set->GetForce(i, j/3, j%3))* (forces[j] - training_set->GetForce(i, j/3, j%3))/ (config->GetNAtoms());
         }
 
         delete[] forces;
