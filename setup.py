@@ -18,10 +18,12 @@ NNcpp = Extension("NNcpp", ["src/atoms.cpp", "src/symmetric_functions.cpp", "src
                   libraries = [LIB_CONFIG])
 
 
-setup(name = 'NNcpp', version = '0.01a', 
+setup(name = 'minnie', version = '0.01a', 
       description = """
       A deep neural network for electronic structure calculation.
       """, 
       author = 'Lorenzo Monacelli', 
       author_email = 'mesonepigreco@gmail.com',
+      packages = ["minnie"],
+      package_dir = {"minnie": "pythonmodule"},
       ext_modules = [NNcpp])
