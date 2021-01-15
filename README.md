@@ -1,5 +1,5 @@
 # MINNIE
-M(?) ab Initio Neural Network Interatomic Engine
+Minimal ab Initio Neural Network Interatomic Engine
 
 MINNIE is a C++/Python software and library that can be used to train an atomic Neural Network 
 to reproduce ab-inito total energy and force calculations.
