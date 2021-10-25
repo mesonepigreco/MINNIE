@@ -85,6 +85,7 @@ public:
 
     // Interact with the ensemble
     int GetNConfigs(void);
+    int GetMaxNAtoms(void); // Get the maximum number of atoms inside the ensemble
     int GetNTyp(void); // Get the total number of atomic species
 
     // Get the atoms configuration at a given index

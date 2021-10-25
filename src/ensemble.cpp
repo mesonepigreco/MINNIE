@@ -200,6 +200,17 @@ int Ensemble::GetNTyp(void) {
     return n_typs_tot;
 }
 
+int Ensemble::GetMaxNAtoms(void) {
+    int maxnat = 0, nat;
+    Atoms * config;
+    for (int i = 0; i < GetNConfigs(); ++i) {
+        GetConfig(i, config);
+        nat = config->GetNAtoms();
+        maxnat =  (maxnat < nat) ? nat : maxnat; 
+    }
+    return maxnat;
+}
+
 
 void Ensemble::LoadFromCFG(const char * config_file) {
     Config cfg;

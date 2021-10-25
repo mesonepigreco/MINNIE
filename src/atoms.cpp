@@ -112,9 +112,9 @@ void Atoms::ReadSCF(string path_to_file, double alat) {
           cerr << "Error, the cell vector must contain only three numbers" << endl;
           throw "";
         }
-        unit_cell[3 * i] = x;
-        unit_cell[3*i + 1] = y;
-        unit_cell[3*i + 2] = z;
+        unit_cell[3 * i] = x * alat;
+        unit_cell[3*i + 1] = y * alat;
+        unit_cell[3*i + 2] = z * alat;
 
         if (DEBUG_ATOMS) 
           cout << "READING " << i << " => " << x << y << z << endl;
@@ -131,9 +131,9 @@ void Atoms::ReadSCF(string path_to_file, double alat) {
         if (DEBUG_ATOMS) cout << "READING " << i << " => " << x << "\t" << y << '\t' << z;
 
 
-        coords[3*i] = x;
-        coords[3*i + 1] = y;
-        coords[3*i + 2] = z;
+        coords[3*i] = x * alat;
+        coords[3*i + 1] = y * alat;
+        coords[3*i + 2] = z * alat;
 
         // Parse the atom symb
         for (j = 0; j < symbs.size(); ++j) {

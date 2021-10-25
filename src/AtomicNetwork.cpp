@@ -6,6 +6,7 @@
 
 // A debugging flag
 #define AN_DEB 0
+#define TIME_GET_ENERGY 0
 
 double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny, int Nz, double ** grad_bias, double ** grad_sinapsis, double target_energy ) {
     int N_atms = coords->GetNAtoms();
@@ -50,6 +51,9 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
     symm_f->GetSymmetricFunctions(coords, Nx, Ny, Nz, symm_fynctions);
     //cout << "Symmetric functions obtained." << endl;
 
+    int time_pca = 0, time_nnfeatures = 0, time_forces = 0;
+    int time_symderiv = 0, time_pcatoforce = 0;
+
     E_tot = 0;
     first_layer = new double[N_lim];
     for (int i = 0; i < N_atms; ++i) { // Parallelizable
@@ -58,6 +62,8 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
             for (int k = 0; k < N_sym; ++k) 
                 printf("# SYM F [%d] of atom %d is : %.8e\n", k, i, symm_fynctions[N_sym*i + k]);
         }
+        auto t1 = std::chrono::high_resolution_clock::now();
+
 
         // Apply the PCA representation
         for (int j = 0; j < N_lim; ++j) {
@@ -71,12 +77,14 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
             if (AN_DEB) printf("# First layer [%d] of atom %d is : %.8e\n", j, i, first_layer[j]);
         }
+        auto t2 = std::chrono::high_resolution_clock::now();
 
         // Send into the neural network
         type = coords->types[i];
         GetNNFromElement(type)->PredictFeatures(1, first_layer, &E_i);
         // Let us rescale the last layer
 
+        auto t3 = std::chrono::high_resolution_clock::now();
         if (AN_DEB) {
             cout << "# Output neuron = " << E_i << " | m = " <<
                 output_energy_mean.at(type) << " sigma = " <<
@@ -90,6 +98,12 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
         if (back_propagation) {
             GetNNFromElement(type)->GetForces(tmp_forces + N_lim*i, output_energy_sigma.at(type));
         }
+
+        auto t4 = std::chrono::high_resolution_clock::now();
+
+        time_pca += std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count();
+        time_nnfeatures += std::chrono::duration_cast<std::chrono::nanoseconds>(t3-t2).count();
+        time_forces += std::chrono::duration_cast<std::chrono::nanoseconds>(t4-t3).count();
     }
 
     // Backpropagation for the gradient
@@ -153,8 +167,13 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
                 
 
                 // Get the derivative of the symmetry function with respect to the atom
+
+
+                auto t1 = std::chrono::high_resolution_clock::now();
                 symm_f->GetDerivatives(coords, Nx, Ny, Nz, i, x, dG_dX); 
 
+
+                auto t2 = std::chrono::high_resolution_clock::now();
                 //cout << "Computing atom: " << i  << "/" << N_atms << " coord " << x ;
                 
                 // Now we must sum over all the symmetric functions
@@ -176,8 +195,11 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
                     }
                 }
+                auto t3 = std::chrono::high_resolution_clock::now();
                 //cout << "FORCE " << i << ", " << x << " AFTER:" << forces[3*i +x] << endl;
 
+                time_symderiv += std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count();
+                time_pcatoforce += std::chrono::duration_cast<std::chrono::nanoseconds>(t3-t2).count();
 
             }
         }
@@ -186,6 +208,17 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
         delete[] tmp_forces;
         delete[] dG_dX;
     }
+
+
+    if (TIME_GET_ENERGY) {
+        cout << "    [TIMING GET ENERGY]" << endl;
+        cout << "       First PCA energy: " << fixed << time_pca / 1000000. << " ms" << endl;
+        cout << "       Compute NN features: " << fixed << time_nnfeatures / 1000000. << " ms" << endl;
+        cout << "       Get forces (1):" << fixed << time_forces / 1000000. << " ms" << endl;
+        cout << "       Get the SYMMETRIC DERIVATIVE: " << fixed << time_symderiv / 1000000. << " ms" << endl;
+        cout << "       Get the PCA to FORCE (SYM): " << fixed << time_pcatoforce / 1000000. << " ms" << endl;
+    }
+
 
     //cout << "Last deleting" << endl;
 
@@ -607,24 +640,49 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
     double energy = 0;
     double * forces = NULL;
     Atoms * config;
+    int max_nat = training_set->GetMaxNAtoms();
+
+    // Timing
+    int getconf_ns = 0;
+    int getenergyc_ns = 0;
+    int getenergynn_ns = 0;
+    int getloss_ns = 0;
+
+
+    forces = new double[max_nat*3];
     for (int i = 0; i < n_conf; ++i) {
         // Get the current atomic configuration from the ensemble
+        auto t1 = std::chrono::high_resolution_clock::now();
         training_set->GetConfig(offset + i, config);
+        auto t2 = std::chrono::high_resolution_clock::now();
 
-        forces = new double[config->GetNAtoms()*3];
         energy = training_set->GetEnergy(i);
+        auto t3 = std::chrono::high_resolution_clock::now();
 
         energy = GetEnergy(config, forces, training_set->N_x, training_set->N_y, training_set->N_z, grad_biases, grad_sinapsis, energy);
 
+        auto t4 = std::chrono::high_resolution_clock::now();
         // Get the loss function
         loss += weight_energy *(energy - training_set->GetEnergy(i) )*(energy - training_set->GetEnergy(i)) / (config->GetNAtoms());
 
         for (int j = 0; j < config->GetNAtoms() * 3; ++j) {
             loss += weight_forces * (forces[j] - training_set->GetForce(i, j/3, j%3))* (forces[j] - training_set->GetForce(i, j/3, j%3))/ (config->GetNAtoms());
         }
+        auto t5 = std::chrono::high_resolution_clock::now();
 
-        delete[] forces;
+        getconf_ns +=  std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count();
+        getenergyc_ns +=  std::chrono::duration_cast<std::chrono::nanoseconds>(t3-t2).count();
+        getenergynn_ns +=  std::chrono::duration_cast<std::chrono::nanoseconds>(t4-t3).count();
+        getloss_ns +=  std::chrono::duration_cast<std::chrono::nanoseconds>(t5-t4).count();
     }
+
+    cout << "    [TIMING LOSS]" << endl;
+    cout << "       Get configuration: " << fixed << getconf_ns / 1000000. << " ms" << endl;
+    cout << "       Get energy of configuration: " << fixed << getenergyc_ns / 1000000. << " ms" << endl;
+    cout << "       Get energy of NN: " << fixed << getenergynn_ns / 1000000. << " ms" << endl;
+    cout << "       Compute the loss function: " << fixed << getloss_ns / 1000000. << " ms" << endl;
+
+    delete[] forces;
     return loss / n_conf;
 }
 
@@ -681,6 +739,9 @@ void AtomicNetwork::TrainNetwork(Ensemble * training_set, string method, double 
         }
 
         loss = GetLossGradient(training_set, weight_energy, weight_force, grad_biases, grad_sinapsis);
+
+        auto after_gradient = chrono::system_clock::now();
+
 
         // Print the info
         cout << " ===== STEP " << ka <<  " =====" << endl;
@@ -780,7 +841,11 @@ void AtomicNetwork::TrainNetwork(Ensemble * training_set, string method, double 
 
         // Timing print
         auto tot_elapsed = chrono::duration_cast<chrono::milliseconds>(after_step - start_step);
-        cout << " Total time elapsed: " << fixed << tot_elapsed.count() << " ms" << endl;
+        auto grad_time = chrono::duration_cast<chrono::milliseconds>(after_gradient - start_step);
+        auto update_time = chrono::duration_cast<chrono::milliseconds>(after_step - after_gradient);
+        cout << " time to compute the gradient: " << fixed << grad_time.count() << " ms" << endl;
+        cout << " time to update the network: " << fixed << update_time.count() << " ms" << endl;
+        cout << " Total time elapsed in the step: " << fixed << tot_elapsed.count() << " ms" << endl;
         cout << endl; 
         cout << fixed;
         

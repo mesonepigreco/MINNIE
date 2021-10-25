@@ -469,7 +469,19 @@ void SymmetricFunctions::GetDerivatives(Atoms * structure, int Nx, int Ny, int N
 
 
   // Compute the derivatives of the C2
+  int excluded = 0;
   for (int atom_index = 0; atom_index < nat; ++atom_index){ 
+
+    // Check if the function goes outside the cutoff with the atom derived.
+    // In this case the derivative do not enter
+    double r2 = 0;
+    for (int i = 0; i < 3; ++i) r2 += (coords[3 * atom_index + i] - coords[3*d_atm_index + i]) * (coords[3 * atom_index + i] - coords[3*d_atm_index + i]);
+    if (r2 > cutoff_radius * cutoff_radius) {
+      //excluded += 1;
+      continue;
+    } 
+
+    // G2 symmetry functions
     for (int i = 0; i < N_G2; ++i) {
       // Cycle over the types
       for (int j = 0; j < N_types; ++j) {
@@ -496,6 +508,8 @@ void SymmetricFunctions::GetDerivatives(Atoms * structure, int Nx, int Ny, int N
       }
     }
   }
+
+  //cout << "Excluded: " << excluded * 100./(float) nat << " \%  cutoff: " << cutoff_radius << " A" << endl;
 
   delete supercell;
 }

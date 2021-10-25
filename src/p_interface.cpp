@@ -1,4 +1,8 @@
+#ifdef _PYTHON2
 #include <python2.7/Python.h>
+#else
+#include <Python.h>
+#endif
 #include <numpy/arrayobject.h>
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
@@ -45,9 +49,23 @@ static PyMethodDef Methods[] = {
 };
 
 // Module initialization
+#ifdef _PYTHON2
 PyMODINIT_FUNC initNNcpp(void) {
     (void) Py_InitModule("NNcpp", Methods);
 }
+#else
+static struct PyModuleDef NNcpp = {
+  PyModuleDef_HEAD_INIT, 
+  "NNcpp", 
+  NULL, 
+  -1, 
+  Methods
+};
+
+PyMODINIT_FUNC PyInit_NNcpp(void) {
+  return PyModule_Create(&NNcpp);
+}
+#endif
 
 // ---------------------------------- FROM NOW ON THE CODE ---------------------------------
 
