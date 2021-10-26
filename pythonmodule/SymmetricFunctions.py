@@ -54,11 +54,11 @@ class SymmetricFunctions(object):
 
         return parameters 
     
-    def get_number_of_g2():
+    def get_number_of_g2(self):
         n2, n4 = NNcpp.GetNSyms(self._SymFunc)
         return n2
 
-    def get_number_of_g4():
+    def get_number_of_g4(self):
         n2, n4 = NNcpp.GetNSyms(self._SymFunc)
         return n4
 
@@ -76,7 +76,7 @@ class SymmetricFunctions(object):
         """
 
         # Call the C++ function to load the symmetric functions
-        NNcpp.LoadSymmetricFunctionsFromCFG(self._SymFunc, fname)
+        NNcpp.LoadSymFuncFromCFG(self._SymFunc, fname)
 
     def save_from_cfg(self, fname):
         """

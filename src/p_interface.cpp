@@ -40,7 +40,6 @@ static PyMethodDef Methods[] = {
     {"LoadEnsembleFromCFG", load_ensemble_from_cfg, METH_VARARGS, "Load the ensemble from a configuration file."},
     {"AddSymG2", add_g2_function, METH_VARARGS, "Add a G2 symmetry function"},
     {"AddSymG4", add_g4_function, METH_VARARGS, "Add a G4 symmetry function"},
-    {"LoadSymmetricFunctionsFromCFG", load_symmetric_functions_from_cfg, METH_VARARGS, "Load a set of symmetric functions from a configuration file."},
     {"CreateSymFuncClass", construct_symmetry, METH_VARARGS, "Create the symmetric function class"},
     {"LoadSymFuncFromCFG", symmetry_load_from_cfg, METH_VARARGS, "Load the symmetric function from a configuration file"},
     {"SaveSymFuncToCFG", symmetry_save_to_cfg, METH_VARARGS, "Save the symmetric function to a configuration file"},
