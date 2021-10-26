@@ -28,6 +28,7 @@ PyObject * construct_atoms(PyObject*self, PyObject * args);
 PyObject * set_atoms_coords_type(PyObject * self, PyObject * args);
 PyObject * get_symmetric_functions_from_atoms(PyObject * self, PyObject * args);
 PyObject * get_symmetric_functions_parameters(PyObject * self, PyObject * args);
+PyObject * set_symmetric_functions_parameters(PyObject * self, PyObject * args);
 PyObject * get_n_sym_functions(PyObject * self, PyObject * args);
 // Define the name for the capsules
 #define NAME_SYMFUNC "symmetry_functions"
@@ -47,6 +48,7 @@ static PyMethodDef Methods[] = {
     {"SetAtomsCoordsTypes", set_atoms_coords_type, METH_VARARGS, "Set from python the Atoms class attributes"},
     {"GetSymmetricFunctions", get_symmetric_functions_from_atoms, METH_VARARGS, "Get the symmetric functions for the atoms class"},
     {"GetSymmetricFunctionParameters", get_symmetric_functions_parameters, METH_VARARGS, "Get the parameters of the symmetric function."},
+    {"SetSymmetricFunctionParameters", set_symmetric_functions_parameters, METH_VARARGS, "Set the parameters of the symmetric function."},
     {"GetNSyms", get_n_sym_functions, METH_VARARGS, "Get the number of symmetric functions."},
     {NULL, NULL, 0, NULL}
 };
@@ -369,6 +371,32 @@ PyObject* get_symmetric_functions_parameters(PyObject * self, PyObject * args) {
         return Py_BuildValue("ddi", p1, p2, p3);
     }
 }
+PyObject* set_symmetric_functions_parameters(PyObject * self, PyObject * args) {
+    PyObject * symf;
+    int index, g2or4;
+
+    double p1, p2;
+    int p3;
+
+    // Parse the python arguments
+    if (!PyArg_ParseTuple(args, "Oiiddi", &symf, &index, &g2or4, &p1, &p2, &p3)) {
+        cerr << "Error, this function requires 6 arguments" << endl;
+        cerr << "Error on file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    // Get the correct C++ data types
+    SymmetricFunctions* symm_func = (SymmetricFunctions*) PyCapsule_GetPointer(symf, NAME_SYMFUNC);
+
+    if (g2or4) {
+        symm_func->EditG2Function(index, p1, p2);
+        return Py_BuildValue("");
+    } else {
+        symm_func->EditG4Function(index, p1, p2, p3);
+        return Py_BuildValue("");
+    }
+}
+
 
 PyObject* get_n_sym_functions(PyObject * self, PyObject * args) {
     PyObject * symf;

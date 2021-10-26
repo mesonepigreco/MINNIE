@@ -19,7 +19,7 @@ class SymmetricFunctions(object):
         # Create the Capsule object for the CPP SymmetricFunction class
         self._SymFunc = NNcpp.CreateSymFuncClass()
 
-    def get_values(self, index, tipology = "g2"):
+    def get_parameters(self, index, tipology = "g2"):
         """
         Get the symmetric function parameters.
         It returns a dictionary of the parameters
@@ -53,6 +53,38 @@ class SymmetricFunctions(object):
             parameters["g4_lambda"] = results[2]
 
         return parameters 
+
+    def set_parameters(self, index, params):
+        """
+        Set the parameters of the symmetric function at the given index.
+        The g2 or g4 function is inferred from keys of params
+
+        Parameters
+        ----------
+            index : int
+                The index of the symmetric function to be set.
+            params : dict
+                The parameters. allowed values are g2_Rs, g2_eta for g2 functions and 
+                g4_zeta, g4_eta and g4_lambda for g4 functions.
+        """
+
+        isg2 = -1
+
+        for k in params:
+            if "g2" in k:
+                if isg2 == 0:
+                    raise ValueError("Error, only one kind between g2 and g4 can be specified.")
+                isg2 = 1
+            elif "g4" in k:
+                if isg2 == 1:
+                    raise ValueError("Error, only one kind between g2 and g4 can be specified.")
+                isg2 = 0
+            else:
+                raise ValueError("Error, unknown parameter {}".format(k))
+
+            
+        #TODO
+        pass
     
     def get_number_of_g2(self):
         n2, n4 = NNcpp.GetNSyms(self._SymFunc)
