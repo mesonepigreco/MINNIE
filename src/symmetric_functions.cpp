@@ -368,6 +368,13 @@ SymmetricFunctions::SymmetricFunctions() {
   cutoff_function_type = 0; 
 };
 
+int SymmetricFunctions::get_n_g2(void) {
+  return G2_RS.size();
+}
+int SymmetricFunctions::get_n_g4(void) {
+  return G4_ETA.size();
+}
+
 void SymmetricFunctions::SetupCutoffFunction(int type, double cutoff_value) {
   // Check if the type is or 0 or 1
   if (type != 0 || type != 1) 
@@ -784,4 +791,56 @@ void SymmetricFunctions::SaveToCFG(const char * cfg_filename) {
 
 SymmetricFunctions::~SymmetricFunctions(){
   // Nothing to do.
+}
+
+
+void SymmetricFunctions::GetG2Parameters(int index, double &rs, double &eta){
+  if (index > N_G2) {
+    cerr << "Error, the maximum number of G2 functions is " << N_G2 << endl;
+    cerr << "       requested index " << index << endl;
+    throw "";
+  }
+  if (index <0) index = N_G2 - index;
+
+  rs = G2_RS.at(index);
+  eta = G2_ETA.at(index);
+}
+
+void SymmetricFunctions::GetG4Parameters(int index, double &zeta, double &eta, int& lambda){
+  if (index > N_G4) {
+    cerr << "Error, the maximum number of G2 functions is " << N_G4 << endl;
+    cerr << "       requested index " << index << endl;
+    throw "";
+  }
+  if (index <0) index = N_G2 - index;
+
+  zeta = G4_ZETA.at(index);
+  eta = G4_ETA.at(index);
+  lambda = G4_LAMBDA.at(index);
+}
+
+void SymmetricFunctions::EditG2Function(int index, double new_rs, double new_eta){
+  if (index > N_G2) {
+    cerr << "Error, the maximum number of G2 functions is " << N_G2 << endl;
+    cerr << "       requested index " << index << endl;
+    throw "";
+  }
+  if (index <0) index = N_G2 - index;
+
+  G2_RS.at(index) = new_rs;
+  G2_ETA.at(index) = new_eta;
+}
+
+
+void SymmetricFunctions::EditG4Function(int index, double zeta, double eta, int lambda){
+  if (index > N_G4) {
+    cerr << "Error, the maximum number of G2 functions is " << N_G4 << endl;
+    cerr << "       requested index " << index << endl;
+    throw "";
+  }
+  if (index <0) index = N_G2 - index;
+
+  G4_ZETA.at(index) = zeta;
+  G4_ETA.at(index) = eta;
+  G4_LAMBDA.at(index) = lambda;
 }

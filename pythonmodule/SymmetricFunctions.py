@@ -19,7 +19,50 @@ class SymmetricFunctions(object):
         # Create the Capsule object for the CPP SymmetricFunction class
         self._SymFunc = NNcpp.CreateSymFuncClass()
 
-    def LoadFromCFG(self, fname):
+    def get_values(self, index, tipology = "g2"):
+        """
+        Get the symmetric function parameters.
+        It returns a dictionary of the parameters
+
+        Parameters
+        ----------
+            index : int
+                The position of the symmetric function
+            tipology : string
+                either g2 or g4 for the respective type of symmetric functions.
+
+        Returns
+        -------
+            parameters : dict
+                The dictionary with the parameters and the respective values
+        """
+        assert tipology.lower().strip() in ["g2", "g4"], "Error accepted only 'g2' or 'g4' for the tipology."
+
+        isg2 = 1
+        if tipology.lower().strip() == "g4":
+            isg2 = 0
+
+        resuts = NNcpp.GetSymmetricFunctionParameters(self._SymFunc, index, isg2)    
+        parameters = {}
+        if isg2:
+            parameters["g2_Rs"] = results[0]
+            parameters["g2_eta"] = results[1]
+        else:
+            parameters["g4_zeta"] = results[0]
+            parameters["g4_eta"] = results[1]
+            parameters["g4_lambda"] = results[2]
+
+        return parameters 
+    
+    def get_number_of_g2():
+        n2, n4 = NNcpp.GetNSyms(self._SymFunc)
+        return n2
+
+    def get_number_of_g4():
+        n2, n4 = NNcpp.GetNSyms(self._SymFunc)
+        return n4
+
+    def load_from_cfg(self, fname):
         """
         Load from file
         ==============
@@ -35,7 +78,7 @@ class SymmetricFunctions(object):
         # Call the C++ function to load the symmetric functions
         NNcpp.LoadSymmetricFunctionsFromCFG(self._SymFunc, fname)
 
-    def SaveFromCFG(self, fname):
+    def save_from_cfg(self, fname):
         """
         Save to file
         ==============
@@ -50,7 +93,7 @@ class SymmetricFunctions(object):
 
         NNcpp.SaveSymFuncToCFG(self._SymFunc, fname)
 
-    def GetSymmetricFunctions(self, atoms, Nx = 1, Ny = 1, Nz = 1):
+    def get_symmetric_functions(self, atoms, Nx = 1, Ny = 1, Nz = 1):
         """
         GET SYMMETRIC FUNCTIONS
         =======================

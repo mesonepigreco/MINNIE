@@ -49,6 +49,18 @@ public:
   SymmetricFunctions();
   ~SymmetricFunctions();
 
+  // Get the info on the specific symmetric function (G2)
+  void GetG2Parameters(int index, double &rs, double &eta);
+
+  // Get the info on the specific symmetric function (G4)
+  void GetG4Parameters(int index, double &zeta, double &eta, int &lambda);
+
+  // Edit the G2 symmetric function given the index
+  void EditG2Function(int index, double new_rs, double new_eta);
+
+  // Edit the G4 symmetric function given the index
+  void EditG4Function(int index, double new_zeta, double new_eta, int new_lambda);
+
   /*
    * Get the value of the symmetric functions, given the cartesian coordinates of the systems.
    *
@@ -147,6 +159,10 @@ public:
   int GetTotalNSym(int N_types);
   int GetG2Sym(int N_types);
   int GetG4Sym(int N_types);
+
+  // Get the type of the number of symmetric functions
+  int get_n_g2();
+  int get_n_g4();
 
 };
 

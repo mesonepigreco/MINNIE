@@ -27,6 +27,8 @@ PyObject * symmetry_save_to_cfg(PyObject * self, PyObject * args);
 PyObject * construct_atoms(PyObject*self, PyObject * args);
 PyObject * set_atoms_coords_type(PyObject * self, PyObject * args);
 PyObject * get_symmetric_functions_from_atoms(PyObject * self, PyObject * args);
+PyObject * get_symmetric_functions_parameters(PyObject * self, PyObject * args);
+PyObject * get_n_sym_functions(PyObject * self, PyObject * args);
 // Define the name for the capsules
 #define NAME_SYMFUNC "symmetry_functions"
 #define NAME_ATOMS "atoms"
@@ -45,6 +47,8 @@ static PyMethodDef Methods[] = {
     {"CreateAtomsClass", construct_atoms, METH_VARARGS, "Create the Atoms class"},
     {"SetAtomsCoordsTypes", set_atoms_coords_type, METH_VARARGS, "Set from python the Atoms class attributes"},
     {"GetSymmetricFunctions", get_symmetric_functions_from_atoms, METH_VARARGS, "Get the symmetric functions for the atoms class"},
+    {"GetSymmetricFunctionParameters", get_symmetric_functions_parameters, METH_VARARGS, "Get the parameters of the symmetric function."},
+    {"GetNSyms", get_n_sym_functions, METH_VARARGS, "Get the number of symmetric functions."},
     {NULL, NULL, 0, NULL}
 };
 
@@ -339,4 +343,51 @@ PyObject* get_symmetric_functions_from_atoms(PyObject * self, PyObject * args) {
     PyObject* output_array = PyArray_SimpleNewFromData(2, symfunc_dims, NPY_DOUBLE, (void*) sym_coords);
 
     return Py_BuildValue("O", output_array);
+}
+
+
+PyObject* get_symmetric_functions_parameters(PyObject * self, PyObject * args) {
+    PyObject * symf;
+    int index, g2or4;
+
+    // Parse the python arguments
+    if (!PyArg_ParseTuple(args, "Oii", &symf, &index, &g2or4)) {
+        cerr << "Error, this function requires 3 arguments" << endl;
+        cerr << "Error on file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    // Get the correct C++ data types
+    SymmetricFunctions* symm_func = (SymmetricFunctions*) PyCapsule_GetPointer(symf, NAME_SYMFUNC);
+
+    double p1, p2;
+    int p3;
+    if (g2or4) {
+        symm_func->GetG2Parameters(index, p1, p2);
+        return Py_BuildValue("dd", p1, p2);
+    } else {
+        symm_func->GetG4Parameters(index, p1, p2, p3);
+        return Py_BuildValue("ddi", p1, p2, p3);
+    }
+}
+
+PyObject* get_n_sym_functions(PyObject * self, PyObject * args) {
+    PyObject * symf;
+    int index, g2or4;
+
+    // Parse the python arguments
+    if (!PyArg_ParseTuple(args, "O", &symf)) {
+        cerr << "Error, this function requires 1 arguments" << endl;
+        cerr << "Error on file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    // Get the correct C++ data types
+    SymmetricFunctions* symm_func = (SymmetricFunctions*) PyCapsule_GetPointer(symf, NAME_SYMFUNC);
+
+    int n2, n4;
+    n2 = symm_func->get_n_g2();
+    n4 = symm_func->get_n_g4();
+
+    return Py_BuildValue("ii", n2, n4);
 }
