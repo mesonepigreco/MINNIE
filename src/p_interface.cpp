@@ -29,7 +29,11 @@ PyObject * set_atoms_coords_type(PyObject * self, PyObject * args);
 PyObject * get_symmetric_functions_from_atoms(PyObject * self, PyObject * args);
 PyObject * get_symmetric_functions_parameters(PyObject * self, PyObject * args);
 PyObject * set_symmetric_functions_parameters(PyObject * self, PyObject * args);
+PyObject * set_cutoff(PyObject * self, PyObject * args);
+PyObject * get_cutoff(PyObject * self, PyObject * args);
+PyObject * set_cutoff_type(PyObject * self, PyObject * args);
 PyObject * get_n_sym_functions(PyObject * self, PyObject * args);
+PyObject * sym_print_info(PyObject * self, PyObject * args);
 // Define the name for the capsules
 #define NAME_SYMFUNC "symmetry_functions"
 #define NAME_ATOMS "atoms"
@@ -49,6 +53,10 @@ static PyMethodDef Methods[] = {
     {"GetSymmetricFunctions", get_symmetric_functions_from_atoms, METH_VARARGS, "Get the symmetric functions for the atoms class"},
     {"GetSymmetricFunctionParameters", get_symmetric_functions_parameters, METH_VARARGS, "Get the parameters of the symmetric function."},
     {"SetSymmetricFunctionParameters", set_symmetric_functions_parameters, METH_VARARGS, "Set the parameters of the symmetric function."},
+    {"SetCutoffRadius", set_cutoff, METH_VARARGS, "Set the cutoff radius."},
+    {"SetCutoffType", set_cutoff_type, METH_VARARGS, "Set the cutoff funciton type."},
+    {"GetCutoffTypeRadius", get_cutoff, METH_VARARGS, "Get the cutoff funciton (type and radius)."},
+    {"SymPrintInfo", sym_print_info, METH_VARARGS, "Print Info about the symmetric functions"},
     {"GetNSyms", get_n_sym_functions, METH_VARARGS, "Get the number of symmetric functions."},
     {NULL, NULL, 0, NULL}
 };
@@ -139,31 +147,33 @@ static PyObject * load_ensemble_from_cfg(PyObject*self, PyObject * args) {
 
 static PyObject * add_g2_function(PyObject * self, PyObject * args) {
     double rs, eta;
-    if (!PyArg_ParseTuple(args, "dd", &rs, &eta)) {
-        cerr << "Error, this function requires rs and eta (double type)" << endl;
+    PyObject * symFuncs;
+    if (!PyArg_ParseTuple(args, "Odd", &symFuncs, &rs, &eta)) {
+        cerr << "Error, this function requires The sym function, rs and eta (double type)" << endl;
         return NULL;
     }
 
-    if (!sym_functs) {
-        sym_functs = new SymmetricFunctions();
-    }
-
+    // Retain the pointer to the symmetric function class
+    SymmetricFunctions* sym_funcs = (SymmetricFunctions*) PyCapsule_GetPointer(symFuncs, NAME_SYMFUNC);
+    cout << "HERE INSIDE" << endl;
     sym_functs->AddG2Function(rs, eta);
+    cout << "HERE INSIDE" << endl;
 
     Py_INCREF(Py_None);
     return Py_None;
 }
 
 static PyObject * add_g4_function(PyObject * self, PyObject * args) {
-    double eta, zeta, lambda;
-    if (!PyArg_ParseTuple(args, "ddd", &eta, &zeta, &lambda)) {
-        cerr << "Error, this function requires eta, zeta and lambda (double type)" << endl;
+    double eta, zeta;
+    int lambda;
+    PyObject * symFuncs;
+    if (!PyArg_ParseTuple(args, "Oddi", &eta, &zeta, &lambda)) {
+        cerr << "Error, this function requires sym fuunctions eta, zeta(double type) and lambda (int)" << endl;
         return NULL;
     }
 
-    if (!sym_functs) {
-        sym_functs = new SymmetricFunctions();
-    }
+    SymmetricFunctions* sym_funcs = (SymmetricFunctions*) PyCapsule_GetPointer(symFuncs, NAME_SYMFUNC);
+
 
     sym_functs->AddG4Function(eta, zeta, lambda);
 
@@ -347,6 +357,24 @@ PyObject* get_symmetric_functions_from_atoms(PyObject * self, PyObject * args) {
 }
 
 
+
+PyObject* sym_print_info(PyObject * self, PyObject * args) {
+    PyObject * symf;
+
+    // Parse the python arguments
+    if (!PyArg_ParseTuple(args, "O", &symf)) {
+        cerr << "Error, this function requires 1 arguments" << endl;
+        cerr << "Error on file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    // Get the correct C++ data types
+    SymmetricFunctions* symm_func = (SymmetricFunctions*) PyCapsule_GetPointer(symf, NAME_SYMFUNC);
+
+    symm_func->PrintInfo();
+
+    return Py_BuildValue("");
+}
 PyObject* get_symmetric_functions_parameters(PyObject * self, PyObject * args) {
     PyObject * symf;
     int index, g2or4;
@@ -396,6 +424,73 @@ PyObject* set_symmetric_functions_parameters(PyObject * self, PyObject * args) {
         return Py_BuildValue("");
     }
 }
+
+PyObject* set_cutoff(PyObject * self, PyObject * args) {
+    PyObject * symf;
+
+    double cutoff;
+    int type;
+
+    // Parse the python arguments
+    if (!PyArg_ParseTuple(args, "Od", &symf, &cutoff)) {
+        cerr << "Error, this function requires 2 arguments" << endl;
+        cerr << "Error on file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    // Get the correct C++ data types
+    SymmetricFunctions* symm_func = (SymmetricFunctions*) PyCapsule_GetPointer(symf, NAME_SYMFUNC);
+
+    type = symm_func->get_cutoff_type();
+    //cout << "type = " << type << endl;
+    symm_func->SetupCutoffFunction(type, cutoff);
+    return Py_BuildValue("");
+}
+
+PyObject* set_cutoff_type(PyObject * self, PyObject * args) {
+    PyObject * symf;
+
+    double cutoff;
+    int type;
+
+    // Parse the python arguments
+    if (!PyArg_ParseTuple(args, "Oi", &symf, &type)) {
+        cerr << "Error, this function requires 2 arguments" << endl;
+        cerr << "Error on file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    // Get the correct C++ data types
+    SymmetricFunctions* symm_func = (SymmetricFunctions*) PyCapsule_GetPointer(symf, NAME_SYMFUNC);
+
+    cutoff = symm_func->get_cutoff();
+    //cout << "type = " << type << endl;
+    symm_func->SetupCutoffFunction(type, cutoff);
+    return Py_BuildValue("");
+}
+
+
+PyObject* get_cutoff(PyObject * self, PyObject * args) {
+    PyObject * symf;
+
+    double cutoff;
+    int type;
+
+    // Parse the python arguments
+    if (!PyArg_ParseTuple(args, "O", &symf)) {
+        cerr << "Error, this function requires 2 arguments" << endl;
+        cerr << "Error on file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    // Get the correct C++ data types
+    SymmetricFunctions* symm_func = (SymmetricFunctions*) PyCapsule_GetPointer(symf, NAME_SYMFUNC);
+
+    cutoff = symm_func->get_cutoff();
+    type = symm_func->get_cutoff_type();
+    return Py_BuildValue("id", type, cutoff);
+}
+
 
 
 PyObject* get_n_sym_functions(PyObject * self, PyObject * args) {

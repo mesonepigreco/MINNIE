@@ -3,6 +3,7 @@ from __future__ import division
 
 # Load the original CPP Module
 import NNcpp 
+import numpy as np
 
 # Load the other modules
 import minnie
@@ -18,6 +19,67 @@ class SymmetricFunctions(object):
 
         # Create the Capsule object for the CPP SymmetricFunction class
         self._SymFunc = NNcpp.CreateSymFuncClass()
+
+    def get_cutoff_function(self):
+        r"""
+        Returns a tuple with the type (0 or 1) and the radius.
+
+        Cutoff functions are those defined in the Beheler paper 10.1002/qua.24890:
+
+        Above :math:`R_c` the cutoff function is zero, below it is a value specified by the type.
+
+        if type is 0 the function is
+
+        .. math ::
+
+            \frac 12 \left[ \cos\left(\frac{\pi R}{R_c}\right) + 1\right]
+
+        if type is 1, the function is
+
+        .. math ::
+            
+            \tanh^3\left(1 - \frac{R}{R_c})
+
+
+        Results
+        -------
+            type : int
+                Either 0 or 1. The typology of the cutoff function employed
+            cutoff_radius : float
+                The :math:`R_c` value above which the symmetry function is truncated.
+        """
+
+        return NNcpp.GetCutoffTypeRadius(self._SymFunc)
+
+    def set_cutoff_radius(self, value):
+        """
+        Setup the radius for the cutoff function.
+        """
+        NNcpp.SetCutoffRadius(self._SymFunc, np.double(value))
+
+    def set_cutoff_function_type(self, type):
+        r"""
+        Setup the cutoff function type (either 0 or 1).
+        The cutoff function is 0 above the cutoff radius and the value identified by 
+        the function type below:
+
+        if type is 0 the function is
+
+        .. math ::
+
+            \frac 12 \left[ \cos\left(\frac{\pi R}{R_c}\right) + 1\right]
+
+        if type is 1, the function is
+
+        .. math ::
+            
+            \tanh^3\left(1 - \frac{R}{R_c})
+        """
+
+        if type != 0 and type != 1:
+            raise ValueError("Error, type can be only 0 or 1")
+        
+        NNcpp.SetCutoffType(self._SymFunc, np.intc(type))
 
     def get_parameters(self, index, tipology = "g2"):
         """
@@ -42,7 +104,7 @@ class SymmetricFunctions(object):
         if tipology.lower().strip() == "g4":
             isg2 = 0
 
-        resuts = NNcpp.GetSymmetricFunctionParameters(self._SymFunc, index, isg2)    
+        results = NNcpp.GetSymmetricFunctionParameters(self._SymFunc, index, isg2)    
         parameters = {}
         if isg2:
             parameters["g2_Rs"] = results[0]
@@ -82,9 +144,52 @@ class SymmetricFunctions(object):
             else:
                 raise ValueError("Error, unknown parameter {}".format(k))
 
+        tipology = "g2"
+        if not isg2:
+            tipology = "g4"
+
+        old_params = self.get_parameters(index, tipology)
+        
+        for key in params:
+            if not key in old_params:
+                raise ValueError("Error, key '{}' not supported. Allowed keys are {}".format(key, list(old_params)))
             
-        #TODO
-        pass
+            old_params[key] = params[key]
+
+        if isg2:
+            p1 = np.double(old_params["g2_Rs"])
+            p2 = np.double(old_params["g2_eta"])
+            p3 = np.intc(0)#params["g2_eta"])
+        else:
+            p1 = np.double(old_params["g4_zeta"])
+            p2 = np.double(old_params["g4_eta"])
+            p3 = np.intc(old_params["g4_lambda"])
+        
+        NNcpp.SetSymmetricFunctionParameters(self._SymFunc, np.intc(index), isg2, p1, p2, p3)
+
+    def print_info(self):
+        """
+        PRINT INFO
+        ==========
+
+        Print a report on stdout on all the symmetric functions initialized.
+        """
+        NNcpp.SymPrintInfo(self._SymFunc)
+
+    def add_g2_function(self, Rs, eta):
+        """
+        Add a new symmetric function of type G2 (non angular)
+        """
+
+        NNcpp.AddSymG2(self._SymFunc, np.double(Rs), np.double(eta))
+
+    def add_g4_function(self, zeta, eta, lambd):
+        """
+        Add a new symmetric function of type G4
+        """
+
+        NNcpp.AddSymG4(self._SymFunc, np.double(zeta), np.double(eta), np.int(lambd))
+
     
     def get_number_of_g2(self):
         n2, n4 = NNcpp.GetNSyms(self._SymFunc)
@@ -110,7 +215,7 @@ class SymmetricFunctions(object):
         # Call the C++ function to load the symmetric functions
         NNcpp.LoadSymFuncFromCFG(self._SymFunc, fname)
 
-    def save_from_cfg(self, fname):
+    def save_to_cfg(self, fname):
         """
         Save to file
         ==============

@@ -377,7 +377,7 @@ int SymmetricFunctions::get_n_g4(void) {
 
 void SymmetricFunctions::SetupCutoffFunction(int type, double cutoff_value) {
   // Check if the type is or 0 or 1
-  if (type != 0 || type != 1) 
+  if (type != 0 && type != 1) 
     throw invalid_argument("ERROR, the cutoff type can be only or 0 or 1.\n");
 
   if (cutoff_value <= 0) 
@@ -386,6 +386,16 @@ void SymmetricFunctions::SetupCutoffFunction(int type, double cutoff_value) {
   cutoff_radius = cutoff_value;
   cutoff_function_type = type;
 };
+
+double SymmetricFunctions::get_cutoff() {
+  return cutoff_radius;
+}
+
+int SymmetricFunctions::get_cutoff_type() { 
+  return cutoff_function_type;
+}
+
+
 
 int SymmetricFunctions::GetTotalNSym(int N_types) {
   return G2_RS.size() * N_types + G4_ZETA.size() * (N_types * (N_types + 1)) / 2;

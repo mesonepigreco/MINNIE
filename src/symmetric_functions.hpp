@@ -139,6 +139,9 @@ public:
    */
   void SetupCutoffFunction(int type, double cutoff_value);
 
+  double get_cutoff();
+  int get_cutoff_type();
+
 
   /*
    * The symmetric functions can be defined in the configuration file
