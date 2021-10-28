@@ -6,7 +6,7 @@
 
 // A debugging flag
 #define AN_DEB 0
-#define TIME_GET_ENERGY 0
+#define TIME_GET_ENERGY 1
 
 double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny, int Nz, double ** grad_bias, double ** grad_sinapsis, double target_energy ) {
     int N_atms = coords->GetNAtoms();
@@ -170,7 +170,7 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
 
                 auto t1 = std::chrono::high_resolution_clock::now();
-                symm_f->GetDerivatives(coords, Nx, Ny, Nz, i, x, dG_dX); 
+                symm_f->GetDerivatives(coords, Nx, Ny, Nz, i, x, dG_dX); // TODO return the list of interacting atoms
 
 
                 auto t2 = std::chrono::high_resolution_clock::now();
@@ -182,6 +182,7 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
                 //cout << "FORCE " << i << ", " << x << " BEFORE:" << forces[3*i +x] << endl;
                 for (int j = 0; j < N_atms; ++j) {
+                    // TODO: cycle only over the list of interacting atoms returned by get derivatives
                     for (int k = 0; k  < N_lim; ++k) {
                         dS_dX = 0;
                         for (int n = 0; n < N_sym; ++n) {

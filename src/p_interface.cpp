@@ -7,6 +7,7 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
 #include "ensemble.hpp"
+#include "AtomicNetwork.hpp"
 #include "symmetric_functions.hpp"
 
 #include <string>
@@ -24,6 +25,8 @@ static PyObject * load_symmetric_functions_from_cfg(PyObject * self, PyObject * 
 PyObject * construct_symmetry(PyObject* self, PyObject * args);
 PyObject * symmetry_load_from_cfg(PyObject * self, PyObject * args);
 PyObject * symmetry_save_to_cfg(PyObject * self, PyObject * args);
+PyObject * atomic_network_load_from_cfg(PyObject * self, PyObject * args);
+PyObject * atomic_network_save_to_cfg(PyObject * self, PyObject * args);
 PyObject * construct_atoms(PyObject*self, PyObject * args);
 PyObject * set_atoms_coords_type(PyObject * self, PyObject * args);
 PyObject * get_symmetric_functions_from_atoms(PyObject * self, PyObject * args);
@@ -36,6 +39,7 @@ PyObject * get_n_sym_functions(PyObject * self, PyObject * args);
 PyObject * sym_print_info(PyObject * self, PyObject * args);
 // Define the name for the capsules
 #define NAME_SYMFUNC "symmetry_functions"
+#define NAME_ANN "atomic_neural_networks"
 #define NAME_ATOMS "atoms"
 #define NAME_ENSEMBLE "ensemble"
 
@@ -58,6 +62,8 @@ static PyMethodDef Methods[] = {
     {"GetCutoffTypeRadius", get_cutoff, METH_VARARGS, "Get the cutoff funciton (type and radius)."},
     {"SymPrintInfo", sym_print_info, METH_VARARGS, "Print Info about the symmetric functions"},
     {"GetNSyms", get_n_sym_functions, METH_VARARGS, "Get the number of symmetric functions."},
+    {"LoadNNFromCFG", atomic_network_save_to_cfg, METH_VARARGS, "Load the NN from the configuration file"},
+    {"SaveNNToCFG", atomic_network_save_to_cfg, METH_VARARGS, "Save the NN into the configuration file"},
     {NULL, NULL, 0, NULL}
 };
 
@@ -512,4 +518,52 @@ PyObject* get_n_sym_functions(PyObject * self, PyObject * args) {
     n4 = symm_func->get_n_g4();
 
     return Py_BuildValue("ii", n2, n4);
+}
+
+
+PyObject * atomic_network_load_from_cfg(PyObject* self, PyObject * args) {
+    const char * fname;
+
+
+    if (!PyArg_ParseTuple(args, "s", &fname)) {
+        cerr << "Error this function requires 1 arguments:" << endl;
+        cerr << "the file name." << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    // Allocate the memory for the Symmetry Function Class
+    AtomicNetwork* ann = new AtomicNetwork(fname);
+
+    // Prepare the python object for the symmetric function
+    PyObject* ann_cap = PyCapsule_New( (void*) ann, NAME_ANN, NULL);
+    PyCapsule_SetPointer(ann_cap, (void*) ann);
+
+    // Return to python the sym func capsule
+    return Py_BuildValue("O", ann_cap);
+}
+
+/*
+ * Save the symmetric function on a file
+ */
+PyObject * atomic_network_save_to_cfg(PyObject* self, PyObject * args) {
+    const char * fname;
+    PyObject * ann;
+
+
+    if (!PyArg_ParseTuple(args, "Os", &ann, &fname)) {
+        cerr << "Error this function requires 2 arguments:" << endl;
+        cerr << "The symmetry function class and the file name." << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    // Retain the pointer to the symmetric function class
+    AtomicNetwork* myann = (AtomicNetwork*) PyCapsule_GetPointer(ann, NAME_ANN);
+
+    // Load the symmetric function from the given file
+    myann->SaveCFG(fname);
+
+    // Return none
+    return Py_BuildValue("");
 }
