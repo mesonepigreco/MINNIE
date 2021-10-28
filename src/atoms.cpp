@@ -80,6 +80,29 @@ void Atoms::GetAtomsCoords(int index, double &x, double &y, double &z) {
 }
 
 
+
+void Atoms::copy_from(Atoms * atm) {
+  if (N_atoms != atm->GetNAtoms()) {
+    cerr << "Error, the number of atoms between the two structures do not match." << endl;
+    throw invalid_argument("");
+  }
+
+  N_types = atm->GetNTypes();
+
+  for (int i = 0; i < N_atoms; ++i) {
+    for (int k = 0; k < 3; ++k)
+      coords[3 * i + k] = atm-> coords[3*i + k];
+    types[i] = atm->types[i];
+  }
+
+  for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 3; ++j) {
+      unit_cell[3*i + j] = atm->unit_cell[3*i + j];
+    }
+  }
+}
+
+
 void Atoms::ReadSCF(string path_to_file, double alat) {
 
   // Read the input

@@ -15,6 +15,29 @@ Ensemble::Ensemble() {
     has_stresses = false;
 }
 
+Ensemble::Ensemble(int ncfg, int nat) {
+    N_configs = ncfg;
+    N_x = 1;
+    N_y = 1;
+    N_z = 1;
+    has_forces = false;
+    has_stresses = false;
+
+    for (int i = 0; i < ncfg; ++i) {
+        Atoms * atm = new Atoms(nat);
+        ensemble.push_back(atm);
+        energies.push_back(0);
+
+        double * allzero = new double[3 * nat];
+        forces.push_back(allzero);
+
+        allzero = new double[6 * nat];
+        stresses.push_back(allzero);
+    }
+
+}
+
+
 Ensemble::~Ensemble() {
     // We can delete all the structures
     for (int i = 0; i < ensemble.size(); ++i) {
@@ -187,6 +210,23 @@ int Ensemble::GetNConfigs() {
 
 void Ensemble::GetConfig(int index, Atoms* & structure) {
     structure = ensemble.at(index);
+}
+
+void Ensemble::SetConfig(int index, Atoms * config, double energy, double * force, double * stress) {
+    ensemble.at(index)->copy_from(config);
+
+    int nat = config->GetNAtoms();
+
+    energies.at(index) = energy;
+
+    if (force) {
+        for (int i = 0; i < nat; ++i) {
+            for (int j = 0; j < 3; ++j) forces.at(index)[3*i +j] = force[3*i+j];
+        }
+    }
+
+    if (stress)
+        for (int j = 0; j < 6; ++j) stresses.at(index)[j] = stress[j];
 }
 
 int Ensemble::GetNTyp(void) {

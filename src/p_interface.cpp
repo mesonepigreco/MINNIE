@@ -28,6 +28,7 @@ PyObject * symmetry_save_to_cfg(PyObject * self, PyObject * args);
 PyObject * atomic_network_load_from_cfg(PyObject * self, PyObject * args);
 PyObject * atomic_network_save_to_cfg(PyObject * self, PyObject * args);
 PyObject * construct_atoms(PyObject*self, PyObject * args);
+PyObject * construct_ensemble(PyObject* self, PyObject * args);
 PyObject * set_atoms_coords_type(PyObject * self, PyObject * args);
 PyObject * get_symmetric_functions_from_atoms(PyObject * self, PyObject * args);
 PyObject * get_symmetric_functions_parameters(PyObject * self, PyObject * args);
@@ -37,6 +38,8 @@ PyObject * get_cutoff(PyObject * self, PyObject * args);
 PyObject * set_cutoff_type(PyObject * self, PyObject * args);
 PyObject * get_n_sym_functions(PyObject * self, PyObject * args);
 PyObject * sym_print_info(PyObject * self, PyObject * args);
+PyObject * override_ensemble(PyObject * self, PyObject * args);
+PyObject * create_atomic_network(PyObject * self, PyObject * args);
 // Define the name for the capsules
 #define NAME_SYMFUNC "symmetry_functions"
 #define NAME_ANN "atomic_neural_networks"
@@ -64,6 +67,9 @@ static PyMethodDef Methods[] = {
     {"GetNSyms", get_n_sym_functions, METH_VARARGS, "Get the number of symmetric functions."},
     {"LoadNNFromCFG", atomic_network_save_to_cfg, METH_VARARGS, "Load the NN from the configuration file"},
     {"SaveNNToCFG", atomic_network_save_to_cfg, METH_VARARGS, "Save the NN into the configuration file"},
+    {"CreateEnsembleClass", construct_ensemble, METH_VARARGS, "Create an empty ensemble."},
+    {"OvverrideEnsembleIndex", override_ensemble, METH_VARARGS, "Override the i-th structure of the ensemble."},
+    {"CreateAtomicNN", create_atomic_network, METH_VARARGS, "Create a new Atomic NN from ensemble"},
     {NULL, NULL, 0, NULL}
 };
 
@@ -244,6 +250,29 @@ PyObject * construct_atoms(PyObject* self, PyObject * args) {
 
     // Return to python the sym func capsule
     return Py_BuildValue("O", atoms_capsule);
+}
+/*
+ * Prepare a python constructor for the symmetry file function
+ */
+PyObject * construct_ensemble(PyObject* self, PyObject * args) {
+    //const char * object_name = "nonamed";
+
+    //PyArg_ParseTuple(args, "s", &object_name);
+    // Allocate the memory for the Symmetry Function Class
+    int Natoms, Nconfigs;
+    if (!PyArg_ParseTuple(args, "ii", &Nconfigs, &Natoms)) {
+        cerr << "Error, I need to know the exact number of structures and atoms per structure before the allocation." << endl;
+        return NULL;
+    }
+    // Allocate the memory for the Symmetry Function Class
+    Ensemble* ens = new Ensemble(Natoms, Nconfigs);
+
+    // Prepare the python object for the symmetric function
+    PyObject* ens_cap = PyCapsule_New( (void*) ens, NAME_ENSEMBLE, NULL);
+    PyCapsule_SetPointer(ens_cap, (void*) ens);
+
+    // Return to python the sym func capsule
+    return Py_BuildValue("O", ens_cap);
 }
 
 
@@ -543,6 +572,38 @@ PyObject * atomic_network_load_from_cfg(PyObject* self, PyObject * args) {
     return Py_BuildValue("O", ann_cap);
 }
 
+PyObject * create_atomic_network(PyObject* self, PyObject * args) {
+
+    PyObject * py_ens, *py_symf;
+    PyArrayObject * py_hidden;
+    int * hidden_layer;
+    int n_hidden, n_lim;
+
+
+    if (!PyArg_ParseTuple(args, "OOiiO", &py_symf, &py_ens, &n_lim, &n_hidden, &py_hidden)) {
+        cerr << "Error this function requires 5 arguments" << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    // Get the correct C++ data types
+    SymmetricFunctions* symm_func = (SymmetricFunctions*) PyCapsule_GetPointer(py_symf, NAME_SYMFUNC);
+    Ensemble* ensemble = (Ensemble*) PyCapsule_GetPointer(py_ens, NAME_ENSEMBLE);
+
+    //       please, always be carefull when passing data type to native C functions
+    hidden_layer = (int*) PyArray_DATA(py_hidden);
+
+    // Allocate the memory for the Symmetry Function Class
+    AtomicNetwork* ann = new AtomicNetwork(symm_func, ensemble, n_lim, n_hidden, hidden_layer, 0);
+
+    // Prepare the python object for the symmetric function
+    PyObject* ann_cap = PyCapsule_New( (void*) ann, NAME_ANN, NULL);
+    PyCapsule_SetPointer(ann_cap, (void*) ann);
+
+    // Return to python the sym func capsule
+    return Py_BuildValue("O", ann_cap);
+}
+
 /*
  * Save the symmetric function on a file
  */
@@ -563,6 +624,43 @@ PyObject * atomic_network_save_to_cfg(PyObject* self, PyObject * args) {
 
     // Load the symmetric function from the given file
     myann->SaveCFG(fname);
+
+    // Return none
+    return Py_BuildValue("");
+}
+
+
+/*
+ * Override the ensemble
+ */
+PyObject * override_ensemble(PyObject* self, PyObject * args) {
+    PyObject * py_ens;
+    PyObject * py_atm;
+
+    PyArrayObject * npy_forces, *npy_stresses;
+    double * forces, *stresses;
+    double energy;
+    int index;
+
+    if (!PyArg_ParseTuple(args, "iOdOOO", &index, &py_ens, &py_atm, &energy, &npy_forces, &npy_stresses)) {
+        cerr << "Error, this function requires 5 arguments" << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    // Get the atoms
+    Ensemble * ens = (Ensemble*) PyCapsule_GetPointer(py_ens, NAME_ENSEMBLE);
+    Atoms * atm = (Atoms*) PyCapsule_GetPointer(py_atm, NAME_ATOMS);
+
+
+    // Get the raw data from the numpy arrays
+    // NOTE: Here something can go wrong
+    //       please, always be carefull when passing data type to native C functions
+    forces = (double*) PyArray_DATA(npy_forces);
+    stresses = (double*) PyArray_DATA(npy_stresses);
+
+    ens->SetConfig(index, atm, energy, forces, stresses);
+
 
     // Return none
     return Py_BuildValue("");

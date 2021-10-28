@@ -33,7 +33,7 @@ private:
     vector<Atoms *> ensemble;
     vector<double> energies;
     vector<double *> forces;
-    vector<double*> stresses; // Voight order
+    vector<double*> stresses; // Voigt order
 
 
 public:
@@ -46,6 +46,7 @@ public:
 
     // Construct the ensemble
     Ensemble();
+    Ensemble(int N_configs, int Natms);
 
     // Destroy the ensemble
     ~Ensemble();
@@ -91,6 +92,9 @@ public:
     // Get the atoms configuration at a given index
     // config is a pointer to the configuration that will be setted to point to the desidered Atoms object.
     void GetConfig(int index, Atoms* &config);
+
+    // Override the specified configuration
+    void SetConfig(int index, Atoms * config, double energy, double * force, double * stresses);
 
     //Get the force
     double GetForce(int config_id, int atom_id, int coord_id);

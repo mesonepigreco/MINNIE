@@ -36,6 +36,8 @@ public:
   // Print the coordinates in the standard output
   void PrintCoords();
 
+  void copy_from(Atoms * atm);
+
   // Return the number of different types in the structure
   int GetNTypes();
 

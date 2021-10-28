@@ -23,7 +23,7 @@ all_nnfiles = ["src/AtomicNetwork.cpp",
                "src/symmetric_functions.cpp",
                "src/Trainer.cpp",
                "src/utils.cpp",
-               "src/p_interface.cpp"]
+               "src/p_interface.cpp"] # The p_interface.cpp is the main for the python interface
 
 print("List of sources:")
 print(all_nnfiles)
