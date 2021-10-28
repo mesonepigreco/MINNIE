@@ -101,15 +101,14 @@ SymmetricFunctions * sym_functs = NULL;
 static PyObject * load_ensemble_from_dir(PyObject * self, PyObject * args) {
     const char * path_dir;
     int N_configs, pop, N_atoms;
+    PyObject * py_ens;
     double alat;
 
     // Get the path dir
-    if (!PyArg_ParseTuple(args, "siiid", &path_dir, &N_configs, &pop, &N_atoms, &alat))
+    if (!PyArg_ParseTuple(args, "Osiiid", &py_ens, &path_dir, &N_configs, &pop, &N_atoms, &alat))
         return NULL;
 
-    if (!ensemble) {
-        ensemble = new Ensemble();
-    }
+    Ensemble * ensemble = (Ensemble*) PyCapsule_GetPointer(py_ens, NAME_ENSEMBLE);
 
     // Load the ensemble
     string path(path_dir);
@@ -143,15 +142,18 @@ static PyObject * print_configuration(PyObject * self, PyObject * args) {
 
 static PyObject * load_ensemble_from_cfg(PyObject*self, PyObject * args) {
     const char * cfg_file;
-    if(!PyArg_ParseTuple(args, "s", &cfg_file))
+    PyObject * py_ens;
+    if(!PyArg_ParseTuple(args, "Os", &py_ens, &cfg_file))  {
+        cerr << "Error, we require 2 arguments" << endl;
+        cerr << "Error on file " << __FILE__ << " line " << __LINE__ << endl;
         return NULL;
-    
-    if (!ensemble) {
-        ensemble = new Ensemble();
+
     }
+    
+    Ensemble * ens = (Ensemble*) PyCapsule_GetPointer(py_ens, NAME_ENSEMBLE);
 
     // Load the ensemble
-    ensemble->LoadFromCFG(cfg_file);
+    ens->LoadFromCFG(cfg_file);
 
     Py_INCREF(Py_None);
     return Py_None;
