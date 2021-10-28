@@ -6,7 +6,7 @@
 
 // A debugging flag
 #define AN_DEB 0
-#define TIME_GET_ENERGY 1
+#define TIME_GET_ENERGY 0
 
 double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny, int Nz, double ** grad_bias, double ** grad_sinapsis, double target_energy ) {
     int N_atms = coords->GetNAtoms();
@@ -30,7 +30,7 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
         cerr << "Or both allocated, or both NULL type" << endl;
         throw "";
     }
-    if (forces || grad_bias) {
+    if (forces) {
         back_propagation = true;
         tmp_forces = new double[N_lim* N_atms];
 

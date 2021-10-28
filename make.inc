@@ -1,7 +1,7 @@
 # Edit the following variables to link the correct library
 
 # Please, specify here the C++ compiler (if different from g++)
-CPP=g++ --std=c++11 -g  #-O3
+CPP=g++ --std=c++11 -g  -O3
 
 # LIBCONFIG configuration settings
 # Please, specify the cflags for the libconfig++ library (the include path)
