@@ -124,6 +124,8 @@ double DG2_DX(double cutoff, double eta, double RS, int cutoff_type,
         (coords[3*d_atm_index+1] - coords[3*i+1]) * (coords[3*d_atm_index+1] - coords[3*i+1]) +
         (coords[3*d_atm_index+2] - coords[3*i+2]) * (coords[3*d_atm_index+2] - coords[3*i+2]);
 
+      if (ri0 > cutoff * cutoff) continue;
+
       ri0 = sqrt(ri0);
       dr_dx = (coords[3*d_atm_index+d_coord_index] - coords[3*i+d_coord_index]) / ri0;
       ret = -2*eta *(ri0 - RS)* exp( -eta * (ri0 - RS) * (ri0 - RS)) * cutoff_function(cutoff_type, cutoff, ri0);
@@ -239,12 +241,14 @@ double DG4_DX(double cutoff, double zeta, double eta, int lambda, int cutoff_typ
         rij = (x0 - x1) * (x0 - x1) +
           (y0 - y1) * (y0 - y1) +
           (z0 - z1) * (z0 - z1);
+
+        if (rij > cutoff * cutoff) continue;
+
         rij = sqrt(rij);
         d_rij2_dx = 2 * ( coords[3*d_atm_index + d_coord_index] - coords[3*i + d_coord_index]);
         d_rij_dx = d_rij2_dx / (2 * rij);
 
         // Avoid the sum over the other atom if we are out of the cutoff region
-        if (rij > cutoff) continue;
         int start_pos = (type_1 == type_2)? i : 0;
         for (int k = start_pos; k < N_atoms; ++k) {
           if (k == i) continue;
@@ -258,11 +262,11 @@ double DG4_DX(double cutoff, double zeta, double eta, int lambda, int cutoff_typ
 
           // Get the distance between the two atoms
           rjk = (x0 - x2)*(x0 - x2) + (y0 - y2)*(y0 - y2) + (z0 - z2)*(z0 - z2);
+          if (rjk > cutoff*cutoff) continue;
           rjk = sqrt(rjk);
           d_rjk2_dx = 2 * ( coords[3*d_atm_index + d_coord_index] - coords[3*k + d_coord_index]);
           d_rjk_dx = d_rjk2_dx / (2 * rjk);
 
-          if (rjk > cutoff) continue;
 
           // Get the angle
           cos_theta = (x1-x0)*(x2-x0) + (y1 - y0)*(y2 - y0) + (z1 - z0)*(z2 - z0);
