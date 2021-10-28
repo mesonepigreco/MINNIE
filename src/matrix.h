@@ -14,7 +14,7 @@
  * matrix[N*i + j] => matrix[i , j]     of dimension N x N
  * the result will be written in the (preallocated) inverse array pointer.
  */ 
-void InvertMatrix(const double * matrix, int N, double * inverse) ;
+void InvertMatrix(double * matrix, int N, double * inverse) ;
 
 
 /*
@@ -22,7 +22,7 @@ void InvertMatrix(const double * matrix, int N, double * inverse) ;
  * given in input (strided as above).
  * It uses the LU decomposition, so it does not work with singular matrices.
  */
-double Determinant(const double * input, int N) ;
+double Determinant(double * input, int N) ;
 
 
 /*
@@ -34,9 +34,9 @@ double Determinant(const double * input, int N) ;
  * The Verbose methods print on stdout the result of the diagonalization, while
  * verbose Diagnoalization calls both.
  */
-void Diagonalize(const double * input, int N, double * eigen_val, double * eigen_vect) ;
-void VerboseDiagResult(const double * eigen_val, const double * eigen_vect, int N) ;
-void VerboseDiagonalization(const double * input, int N, double * eigen_val, double * eigen_vect) ;
+void Diagonalize(double * input, int N, double * eigen_val, double * eigen_vect) ;
+void VerboseDiagResult(double * eigen_val, double * eigen_vect, int N) ;
+void VerboseDiagonalization(double * input, int N, double * eigen_val, double * eigen_vect) ;
 
 /*
  * The following function computes the inner product between a matrix and two vectors.
@@ -45,7 +45,7 @@ void VerboseDiagonalization(const double * input, int N, double * eigen_val, dou
  * The matrix, as the method above, is a slice matrix of dimension N x N.
  * Vectors have both dimension N.
  */
-double InnerProduct(const double * v_1, const double * matrix, const double * v_2, int N) ;
+double InnerProduct(double * v_1, double * matrix, double * v_2, int N) ;
 
 
 /*
@@ -59,7 +59,7 @@ double InnerProduct(const double * v_1, const double * matrix, const double * v_
 /*
  * Eliminate from the input array all the indiced contained into fixed_indices.
  */
-void ReduceArray(const double * input, double * output, int N_total, int N_fixed, const int * fixed_indices) ;
+void ReduceArray(double * input, double * output, int N_total, int N_fixed, int * fixed_indices) ;
 
 
 /*
@@ -67,13 +67,13 @@ void ReduceArray(const double * input, double * output, int N_total, int N_fixed
  * and stores the result inside output.
  * The matrix in input is stretched, so the elements can be accessed as input[N_total*i + j]
  */
-void ReduceStretchedMatrix(const double * input, double * output, int N_total, int N_fixed, const int * fixed_indices) ;
+void ReduceStretchedMatrix(double * input, double * output, int N_total, int N_fixed, int * fixed_indices) ;
 
 
 /*
  * This does the same as the one above but the input and output matrix is a 2-rank array.
  */
-void Reduce2RankMatrix(const double ** input, double ** output, int N_total, int N_fixed, const int * fixed_indices) ;
+void Reduce2RankMatrix(double ** input, double ** output, int N_total, int N_fixed, int * fixed_indices) ;
 
 
 /*
@@ -81,14 +81,14 @@ void Reduce2RankMatrix(const double ** input, double ** output, int N_total, int
  * the input
  */
 void Transpose(double * input_output, int N) ;
-void CopyTranspose(const double * input, double * output, int N) ;
+void CopyTranspose(double * input, double * output, int N) ;
 
 /*
  * Execute the Rows dot Columns multiplication between m1 and m2 matrices (N x N),
  * and stores the results on output. Both the input matrices must be stretched.
  * m[N*i + j] where i varies the row index and j the column index
  */
-void MatrixMultiplication(const double * m1, const double * m2, double * output, int N) ;
+void MatrixMultiplication(double * m1, double * m2, double * output, int N) ;
 
 /*
  * Changes the basis of the input matrix using the unitary U matrix, and stores the results in 
@@ -97,13 +97,13 @@ void MatrixMultiplication(const double * m1, const double * m2, double * output,
  * U passes from the eigenvector basis -> to the canonical basis
  * U^t passes from the canonical basis -> to the eigevector basis.
  */
-void MatrixChangeBasis(const double * U, const double * input, double * output, int N) ;
+void MatrixChangeBasis(double * U, double * input, double * output, int N) ;
 
 
 /*
  * Perform the Rows dot Column multiplication between M matrix (N x N) and v vector (N).
  * The result is stored in the output vector.
  */
-void MatrixVectorMultiplication(const double * M, const double * v, double * output, int N) ;
+void MatrixVectorMultiplication(double * M, double * v, double * output, int N) ;
 
 #endif

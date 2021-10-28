@@ -13,7 +13,7 @@
  * Invert the matrix and store the result into inverse (already allocated)
  * data stores as matrix[N*i + j], of dimension N*N.
  */
-void InvertMatrix(const double * matrix, int N, double * inverse) {
+void InvertMatrix( double * matrix, int N, double * inverse) {
   int i, j, s;
   gsl_matrix_view m, inv;
   gsl_permutation *p;
@@ -40,7 +40,7 @@ void InvertMatrix(const double * matrix, int N, double * inverse) {
 
 
 // det A
-double Determinant(const double * input, int N) {
+double Determinant( double * input, int N) {
   int i, s;
   gsl_matrix_view m;
   gsl_permutation *p;
@@ -65,7 +65,7 @@ double Determinant(const double * input, int N) {
 }
 
 
-void Diagonalize(const double * input, int N, double * eigen_val, double * eigen_vect) {
+void Diagonalize( double * input, int N, double * eigen_val, double * eigen_vect) {
   double * copy;
   int i;
   gsl_eigen_symmv_workspace * w;
@@ -94,7 +94,7 @@ void Diagonalize(const double * input, int N, double * eigen_val, double * eigen
 }
 
 
-void VerboseDiagResult(const double * eigen_val, const double * eigen_vect, int N) {
+void VerboseDiagResult( double * eigen_val,  double * eigen_vect, int N) {
   int i, j;
   printf("\nEigenvalues:\n");
   for (i = 0; i < N; ++i) {
@@ -111,14 +111,14 @@ void VerboseDiagResult(const double * eigen_val, const double * eigen_vect, int 
 }
 
 
-void VerboseDiagonalization(const double * input, int N, double * eigen_val, double * eigen_vect) {
+void VerboseDiagonalization(double * input, int N, double * eigen_val, double * eigen_vect) {
   Diagonalize(input, N, eigen_val, eigen_vect);
   VerboseDiagResult(eigen_val, eigen_vect, N);
 }
 
 
 // computes <v_1 | M | v_2>
-double InnerProduct(const double * v_1, const double * matrix, const double * v_2, int N) {
+double InnerProduct(double * v_1, double * matrix, double * v_2, int N) {
   gsl_matrix_view m;
   gsl_vector_view v1, v2;
   gsl_vector * tmp;
@@ -164,7 +164,7 @@ double InnerProduct(const double * v_1, const double * matrix, const double * v_
 } */
 
 
-void ReduceArray(const double * input, double * output, int N_total, int N_fixed, const int * fixed_indices) {
+void ReduceArray( double * input, double * output, int N_total, int N_fixed,  int * fixed_indices) {
   int i, j, jump=0;
   for (i = 0; i < N_total; ++i) {
 
@@ -181,7 +181,7 @@ void ReduceArray(const double * input, double * output, int N_total, int N_fixed
 }
 
 
-void ReduceStretchedMatrix(const double * input, double * output, int N_total, int N_fixed, const int * fixed_indices) {
+void ReduceStretchedMatrix( double * input, double * output, int N_total, int N_fixed,  int * fixed_indices) {
   int i, j, k, jump_i=0, jump_j=0;
   for (i = 0; i < N_total; ++i) {
     // Check if the current index must be jumped
@@ -207,7 +207,7 @@ void ReduceStretchedMatrix(const double * input, double * output, int N_total, i
   }
 }
 
-void Reduce2RankMatrix(const double ** input, double ** output, int N_total, int N_fixed, const int * fixed_indices) {
+void Reduce2RankMatrix( double ** input,  double ** output, int N_total, int N_fixed,  int * fixed_indices) {
   int i, j, jump=0;
 
   for (i = 0; i < N_total; ++i) {
@@ -258,14 +258,14 @@ void Transpose(double * input_output, int N) {
   }
 }
 
-void CopyTranspose(const double * input, double * output, int N) {
+void CopyTranspose( double * input, double * output, int N) {
   int i;
   for (i = 0; i < N*N; ++i) output[i] = input[i];
   Transpose(output, N);
 }
 
 
-void MatrixMultiplication(const double * m1, const double * m2, double * output, int N) {
+void MatrixMultiplication( double * m1,  double * m2, double * output, int N) {
   int i, j, k;
 
   for (i = 0; i < N; ++i) {
@@ -286,7 +286,7 @@ void MatrixMultiplication(const double * m1, const double * m2, double * output,
  * U passes from the eigenvector basis -> to the canonical basis
  * U^t passes from the canonical basis -> to the eigevector basis.
  */
-void MatrixChangeBasis(const double * U, const double * input, double * output, int N) {
+void MatrixChangeBasis( double * U,  double * input, double * output, int N) {
   int i;
   double * tmp1 = (double *) calloc(sizeof(double*), N*N);
   double * tmp2 = (double *) calloc(sizeof(double*), N*N);
@@ -308,7 +308,7 @@ void MatrixChangeBasis(const double * U, const double * input, double * output, 
  * v = N
  * output = N
  */
-void MatrixVectorMultiplication(const double * M, const double * v, double * output, int N) {
+void MatrixVectorMultiplication( double * M,  double * v, double * output, int N) {
   int i, j;
 
   for (i = 0; i < N; ++i) {
