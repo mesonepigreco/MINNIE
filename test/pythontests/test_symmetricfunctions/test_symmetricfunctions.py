@@ -34,10 +34,9 @@ def test_symmetricget():
 
     sf.print_info()
     
-    # sf.add_g2_function(0.4, 1)    
-    # print("HERE")
-    # sf.add_g4_function(0.8, 1.2, 2)
-    # print("HERE")
+    sf.add_g2_function(0.4, 1)    
+    sf.add_g4_function(0.8, 1.2, 2)
+    sf.print_info()
     sf.save_to_cfg("new_symf.cfg")
 
     

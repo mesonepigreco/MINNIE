@@ -20,6 +20,13 @@ class SymmetricFunctions(object):
         # Create the Capsule object for the CPP SymmetricFunction class
         self._SymFunc = NNcpp.CreateSymFuncClass()
 
+    def get_total_number_functions(self, ntyps):
+        """
+        Get the total number of symmetric function given the atomic types
+        """
+
+        return NNcpp.GetNSyms(self._SymFunc, ntyps)[2]
+
     def get_cutoff_function(self):
         r"""
         Returns a tuple with the type (0 or 1) and the radius.
@@ -192,11 +199,11 @@ class SymmetricFunctions(object):
 
     
     def get_number_of_g2(self):
-        n2, n4 = NNcpp.GetNSyms(self._SymFunc)
+        n2, n4, _ = NNcpp.GetNSyms(self._SymFunc,0)
         return n2
 
     def get_number_of_g4(self):
-        n2, n4 = NNcpp.GetNSyms(self._SymFunc)
+        n2, n4, _ = NNcpp.GetNSyms(self._SymFunc,0)
         return n4
 
     def load_from_cfg(self, fname):
@@ -230,7 +237,7 @@ class SymmetricFunctions(object):
 
         NNcpp.SaveSymFuncToCFG(self._SymFunc, fname)
 
-    def get_symmetric_functions(self, atoms, Nx = 1, Ny = 1, Nz = 1):
+    def get_symmetric_functions(self, atoms, Nx = 3, Ny = 3, Nz = 3):
         """
         GET SYMMETRIC FUNCTIONS
         =======================
@@ -243,6 +250,7 @@ class SymmetricFunctions(object):
                 The atoms to which you want to compute the symmetric functions.
             Nx, Ny, Nz : int
                 The supercell to be created in which to compute the symmetric functions
+                If you do not want periodic boundary conditions, use 1 for each value
 
         Results
         -------
@@ -252,3 +260,40 @@ class SymmetricFunctions(object):
 
         sym_funcs = NNcpp.GetSymmetricFunctions(self._SymFunc, atoms._atoms, Nx, Ny, Nz)
         return sym_funcs
+
+    def pca_analysis(self, ensemble, Nx=3, Ny=3, Nz=3):
+        """
+        PERFORM THE PCA ANALYSIS ON THE GIVEN SYMMETRIC FUNCTIONS
+        =========================================================
+
+        The PCA analysis consists in computing the mean values of each symmetric function
+        per atom inside the ensemble and their covariance matrix.
+        
+        This method only returns the covariance matrix and the mean, you need to diagonalize them
+        to assess the PCA.
+
+        It is always very usefull to run this check to assess if there are redundant symmetric functions
+
+        Parameters
+        ----------
+            ensemble : minnie.Ensemble.Ensemble
+                The ensemble on which the PCA is performed.
+            Nx, Ny, Nz : int
+                The periodicity of the cell. 1,1,1 if no periodic boundary conditions.
+
+        Results
+        -------
+            mean : ndarray(size = nsym)
+                For each symmetry function, the mean value it has in the ensemble.
+            cvar_mat : ndarray(size = (nsym, nsym))
+                The covariance matrix between symmetric functions on the ensemble.
+        """
+
+        ntyps = ensemble.get_n_types()
+        nsyms = self.get_total_number_functions(ntyps)
+
+        means = np.zeros(nsyms, dtype = np.double)
+        cvar_mat = np.zeros( (nsyms, nsyms), dtype = np.double, order = "C")
+
+        NNcpp.GetCovarianceMatrix(ensemble._ensemble, self._SymFunc, Nx, Ny, Nz, means, cvar_mat)
+        return means, cvar_mat

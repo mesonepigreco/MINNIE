@@ -73,8 +73,10 @@ public:
      *          The number of atoms for each configuration in the ensemble.
      *      alat : double
      *          The units [in Angstrom] in which the atomic position are written. By default it is angstrom.
+     *      override : bool
+     *          If true, the configurations are overwritten, otherwise they are appended.
      */
-    void Load(string folder, int N_configs, int population, int N_atoms, double alat = 1);
+    void Load(string folder, int N_configs, int population, int N_atoms, double alat = 1, bool override = false);
 
 
     /*

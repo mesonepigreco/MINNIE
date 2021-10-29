@@ -302,14 +302,17 @@ bool AddG2Function(SymmetricFunctions * symf, Ensemble * ensemble, int Nx, int N
 
 
 void GetCovarianceSymmetry(Ensemble * ens, SymmetricFunctions* symmf, int Nx, int Ny, int Nz, 
-                            double * &means, double * &cov_mat) {
+                            double * means, double * cov_mat) {
+
     int nat_tot = 0;
     int ntyp = ens->GetNTyp();
     int N_sym_tot = symmf->GetTotalNSym(ntyp);
+
+
     double * sym_values;
     int N_atoms;
-    means = new double[N_sym_tot];
-    cov_mat = new double[N_sym_tot * N_sym_tot];
+    //means = new double[N_sym_tot];
+    //cov_mat = new double[N_sym_tot * N_sym_tot];
 
 
     // Prepare the means and covariance matrix
@@ -317,6 +320,7 @@ void GetCovarianceSymmetry(Ensemble * ens, SymmetricFunctions* symmf, int Nx, in
     // Perform a zero initialization
     for (int i = 0; i < N_sym_tot; ++i) means[i] = 0;
     for (int i = 0; i < N_sym_tot * N_sym_tot; ++i) cov_mat[i] = 0;
+
 
     Atoms * config;
     for (int k = 0; k < ens->GetNConfigs(); ++k) {

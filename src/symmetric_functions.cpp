@@ -73,6 +73,9 @@ double G2_symmetry_func(double cutoff, double eta, double RS, int cutoff_type,
     rij = (x0 - x1) * (x0 - x1) +
       (y0 - y1) * (y0 - y1) +
       (z0 - z1) * (z0 - z1);
+
+    if (rij > cutoff * cutoff) continue;
+
     //cout << "ATOM: " << atom_index << " "<< i << " rij: " << rij << endl; 
     rij = sqrt(rij);
 
@@ -166,10 +169,11 @@ double G4_symmetry_func(double cutoff, double zeta, double eta, int lambda, int 
     rij = (x0 - x1) * (x0 - x1) +
       (y0 - y1) * (y0 - y1) +
       (z0 - z1) * (z0 - z1);
+
+    if (rij > cutoff * cutoff) continue;
     rij = sqrt(rij);
 
     // Avoid the sum over the other atom if we are out of the cutoff region
-    if (rij > cutoff) continue;
     int start_pos = (type_1 == type_2)? i : 0;
     for (int k = start_pos; k < N_atoms; ++k) {
       if (k == i) continue;

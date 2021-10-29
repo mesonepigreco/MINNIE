@@ -53,11 +53,17 @@ Ensemble::~Ensemble() {
 }
 
 
-void Ensemble::Load(string folder_path, int N_conf, int population, int N_atoms, double alat) {
+void Ensemble::Load(string folder_path, int N_conf, int population, int N_atoms, double alat, bool override) {
     
     // Load the ensemble from the specified path
     has_forces = false;
     has_stresses = false;
+
+    if (override && GetNConfigs() != N_conf) {
+        cerr << "Error, when loading an ensemble in override mode, you must use" << endl;
+        cerr << "       the same number of configuration as those specified at the beginning" << endl;
+        throw invalid_argument("");
+    }
     N_configs = N_conf;
 
     // Check if the directory is followed by the '/' (add it in case)
@@ -104,7 +110,10 @@ void Ensemble::Load(string folder_path, int N_conf, int population, int N_atoms,
                 new_config->unit_cell[j] = unit_cell[j];
 
         // Push the atom in the list
-        ensemble.push_back(new_config);
+        if (!override) 
+            ensemble.push_back(new_config);
+        else
+            ensemble.at(i) = new_config;
 
         // Check if the corresponding force exists
         filename = folder_path + "forces_population" + to_string(population) + "_" + to_string(i+1) + ".dat";
@@ -129,7 +138,10 @@ void Ensemble::Load(string folder_path, int N_conf, int population, int N_atoms,
                 force[3*j + 1] = y;
                 force[3*j + 2] = z;
             }
-            forces.push_back(force);
+            if (!override)
+                forces.push_back(force);
+            else 
+                forces.at(i) = force;
             uc_file.close();
         } else {
             if (has_forces) {
@@ -163,7 +175,10 @@ void Ensemble::Load(string folder_path, int N_conf, int population, int N_atoms,
             stress[4] = 0.5*(szx + sxz);
             stress[5] = 0.5*(sxy + syx);
             
-            stresses.push_back(stress);
+            if (!override)
+                stresses.push_back(stress);
+            else
+                stresses.at(i) = stress;
             uc_file.close();
         } else {
             if (has_stresses) {
@@ -186,8 +201,10 @@ void Ensemble::Load(string folder_path, int N_conf, int population, int N_atoms,
                 cerr << "FILE: " << __FILE__ << " LINE: " << __LINE__<< endl;
                 throw "";
             }
-
-            energies.push_back(energy);
+            if (!override)
+                energies.push_back(energy);
+            else 
+                energies.at(i) = energy;
         }
         uc_file.close();
 

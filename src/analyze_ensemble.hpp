@@ -44,7 +44,7 @@ void PrintSymmetricFunctions(string file_path, SymmetricFunctions * symf, Ensemb
  * Get the covariance matrix between the symmetric functions. In this way it is possible
  * to perform a PCA to understand if there are redundant symmetric functions or not.
  * 
- * NOTE: The output array will be initialized
+ * The output array needs to be initialized of size n_sym and n_sym * n_sym
  * 
  * Parameters
  * ----------
@@ -59,7 +59,7 @@ void PrintSymmetricFunctions(string file_path, SymmetricFunctions * symf, Ensemb
  *      cvar_mat : Array (size the total number of symmetric functions to the square)
  *          The covariance matrix between the symmetric functions. <si sj> - <si><sj>
  */
-void GetCovarianceSymmetry(Ensemble *, SymmetricFunctions*, int Nx, int Ny, int Nz, double * &means, double * &cvar_mat);
+void GetCovarianceSymmetry(Ensemble *, SymmetricFunctions*, int Nx, int Ny, int Nz, double * means, double * cvar_mat);
 
 
 /*

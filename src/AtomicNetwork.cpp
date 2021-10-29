@@ -510,7 +510,11 @@ AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int 
     //Nz = nz;
 
     // Perform the PCA
-    double * means, *cvar_mat;
+    int ntyp = ensemble->GetNTyp();
+    int N_sym_tot = symf->GetTotalNSym(ntyp);
+    
+    double * means = new double[N_sym_tot];
+    double *cvar_mat = new double[N_sym_tot * N_sym_tot];
     GetCovarianceSymmetry(ensemble, symf, ensemble->N_x, ensemble->N_y, ensemble->N_z, means, cvar_mat);
 
     cout << "Nlim:" << N_lim << endl;
