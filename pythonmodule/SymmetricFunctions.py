@@ -20,6 +20,60 @@ class SymmetricFunctions(object):
         # Create the Capsule object for the CPP SymmetricFunction class
         self._SymFunc = NNcpp.CreateSymFuncClass()
 
+    def add_g2_grid(self, r_min, r_max, N):
+        """
+        CREATE A GRID OF SYMMETRIC FUNCTIONS (G2)
+        =========================================
+
+        This method automatically creates a grid of symmetric functions to describe completely the
+        space of the parameters with just coordination numbers.
+
+        It creates only G2 functions centered around zero.
+
+        Parameters
+        ----------
+            r_min : float
+                The minimum radius probed.
+            r_max : float
+                The maximum radius probed.
+            N : int
+                The number of symmetric functions
+        """
+
+        r_lims = np.linspace(r_min, r_max, N)
+        etas = 1 / (2 * r_lims**2)
+
+        for i, eta in enumerate(etas):
+            self.add_g2_function(0, eta)
+
+
+    def add_g4_grid(self, r_value, N):
+        """
+        CREATE A GRID OF SYMMETRIC FUNCTIONS (G4)
+        =========================================
+
+        This method automatically creates a grid of symmetric functions to describe completely the
+        space of the parameters with angles triplets.
+
+        Higher values of N means higher sensitivity on the angles.
+
+        Parameters
+        ----------
+            r_value : float
+                The value of the radius above which the atoms are neglected.
+            N : int
+                The number of symmetric functions. For each N, 2 symmetric functions are added.
+                One with lambda = 1 and the other with lambda = -1.
+        
+        """
+
+        zetas = 2**np.arange(N)
+        eta = 1 / (2 * r_value**2)
+
+        for i, zeta in enumerate(zetas):
+            self.add_g4_function(eta, zeta, 1)
+            self.add_g4_function(eta, zeta, -1)
+
     def get_total_number_functions(self, ntyps):
         """
         Get the total number of symmetric function given the atomic types
@@ -190,12 +244,12 @@ class SymmetricFunctions(object):
 
         NNcpp.AddSymG2(self._SymFunc, np.double(Rs), np.double(eta))
 
-    def add_g4_function(self, zeta, eta, lambd):
+    def add_g4_function(self, eta, zeta, lambd):
         """
         Add a new symmetric function of type G4
         """
 
-        NNcpp.AddSymG4(self._SymFunc, np.double(zeta), np.double(eta), np.int(lambd))
+        NNcpp.AddSymG4(self._SymFunc, np.double(eta), np.double(zeta), np.int(lambd))
 
     
     def get_number_of_g2(self):
@@ -206,7 +260,7 @@ class SymmetricFunctions(object):
         n2, n4, _ = NNcpp.GetNSyms(self._SymFunc,0)
         return n4
 
-    def load_from_cfg(self, fname):
+    def load_cfg(self, fname):
         """
         Load from file
         ==============
@@ -222,7 +276,7 @@ class SymmetricFunctions(object):
         # Call the C++ function to load the symmetric functions
         NNcpp.LoadSymFuncFromCFG(self._SymFunc, fname)
 
-    def save_to_cfg(self, fname):
+    def save_cfg(self, fname):
         """
         Save to file
         ==============
@@ -297,3 +351,22 @@ class SymmetricFunctions(object):
 
         NNcpp.GetCovarianceMatrix(ensemble._ensemble, self._SymFunc, Nx, Ny, Nz, means, cvar_mat)
         return means, cvar_mat
+
+
+def covariance_to_correlation(cvar_mat):
+    """
+    Get the Pearson correlation matrix from the covariance matrix
+
+    Parameters
+    ----------
+        cvar_mat : ndarray(size = (N,N))
+            The covariance matrix
+    
+    Returns
+    -------
+        pearson_corr_mat : ndarray(size = (N,N))
+            The pearson correlation coefficient
+    """
+
+    sigmas = np.sqrt(np.diag(cvar_mat))
+    return cvar_mat / np.outer(sigmas, sigmas)

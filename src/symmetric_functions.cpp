@@ -607,16 +607,19 @@ void SymmetricFunctions::AddG4Function(double eta, double zeta, int lambda) {
   G4_ZETA.push_back(zeta);
   G4_ETA.push_back(eta);
 
-  if (lambda != 1 || lambda != -1) {
+  if (lambda != 1 && lambda != -1) {
     cerr << "WARNING: G4 lambda sould be +- 1" << endl;
     cerr << "         yor lambda = " << lambda << endl;
     cerr << "         please check if this is really what you want." << endl;
   }
 
   // Check if there is an inconsistency
-  if (N_G4 != G4_ZETA.size() || N_G4 != G4_ETA.size() || N_G2 != G4_LAMBDA.size()) {
+  if (N_G4 != G4_ZETA.size() || N_G4 != G4_ETA.size() || N_G4 != G4_LAMBDA.size()) {
     cerr << "Error while appending a G4 function" << endl;
     cerr << "The N_G4 does not match the size of the parameters" << endl;
+    cerr << "Counted g4: " << N_G4 << " | real g4 (zetas): " << G4_ZETA.size() << endl;
+    cerr << "Counted g4: " << N_G4 << " | real g4 (etas): " << G4_ETA.size() << endl;
+    cerr << "Counted g4: " << N_G4 << " | real g4 (lambdas): " << G4_LAMBDA.size() << endl;
     throw "";
   }
 }
