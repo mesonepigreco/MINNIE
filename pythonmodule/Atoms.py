@@ -54,10 +54,10 @@ class Atoms(object):
         new_types = np.zeros(types.shape, dtype = np.intc)
         new_types[:] = types
         new_uc = np.zeros( (3,3), dtype = np.double, order = "C")
-        if uc:
+        if uc is not None:
             new_uc[:,:] = uc
 
-        NNcpp.SetAtomsCoordsTypes(new_coords, types, uc)
+        NNcpp.SetAtomsCoordsTypes(self._atoms, new_coords, types, uc)
 
     def set_from_cellconstructor(self, structure):
         """

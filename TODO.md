@@ -7,3 +7,4 @@ To speedupt things:
 
 1. Return from the GetDerivatives only the interacting atoms with the ith atom.
 2. When generating the supercell, exclude automatically all atoms which are more distant than the cutoff with the original atoms
+3. Add the shoutdown of the symmetric functions with lower than a threshold of variance (depends on atomic species)

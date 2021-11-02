@@ -31,7 +31,7 @@ class AtomicNetwork:
         """
         Check if it has been initialized
         """
-        if self._minnie:
+        if self._minnie is None:
             return False
         return True
 
@@ -67,9 +67,9 @@ class AtomicNetwork:
 
         assert all(hidlayer > 0), "Error, the number of nodes for hidden layer must be strictly positive"
 
-        self._minnie = NNcpp.CreateAtomicNN(symmetryc_functions, ensemble, pca_limit, n_hidden, hidlayer)
+        self._minnie = NNcpp.CreateAtomicNN(symmetryc_functions._SymFunc, ensemble._ensemble, pca_limit, n_hidden, hidlayer)
 
-    def load_from_cfg(self, filename):
+    def load_cfg(self, filename):
         """
         Load the neural network from the specified file.
         Note: this overrides the original neural network.
@@ -81,7 +81,7 @@ class AtomicNetwork:
 
         self._minnie = NNcpp.LoadNNFromCFG(filename)
 
-    def save_to_cfg(self, filename):
+    def save_cfg(self, filename):
         """
         Save the nn to the configuration file specified.
         """
@@ -89,8 +89,46 @@ class AtomicNetwork:
         if not self.is_initialized():
             raise ValueError("Error, the NN must be initialized.")
 
+
         
         NNcpp.SaveNNToCFG(self._minnie, filename)
+
+    def get_energy(self, atoms, compute_forces = False, Nx = 3, Ny = 3, Nz = 3):
+        """
+        GET ENERGY AND FORCES
+        =====================
+
+        Use the current neural network to get energies and forces for the given configuration
+
+
+        Parameters
+        ----------
+            atoms : minnie.Atoms.Atoms
+                The configuration on which to compute the energies and forces
+            compute_forces : bool
+                If true the forces are computed.
+            Nx, Ny, Nz : int
+                The dimension of the supercell on which you want to expand the atoms to
+                set the periodic boundary conditions.
+        
+        Results
+        -------
+            energy : float
+                The value of the energy (usually in eV, but depends on the training data)
+            forces : ndarray(size = (n_atoms, 3), dtype = np.double, order = "C")
+                The forces for each atoms. This is returned only if compute_forces is True.
+        """
+
+        assert self.is_initialized(), "Error, the network should be initialized before computing energy or forces."
+
+        nat = atoms.N_atoms
+        forces = np.zeros( (nat, 3), dtype = np.double, order = "C")
+
+        energy = NNcpp.NN_GetEnergy(self._minnie, atoms._atoms, compute_forces, forces, Nx, Ny, Nz)
+
+        if compute_forces:
+            return energy, forces 
+        return energy
 
         
 

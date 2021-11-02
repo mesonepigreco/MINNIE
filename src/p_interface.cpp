@@ -46,6 +46,7 @@ PyObject * get_ensemble_nconfigs(PyObject * self, PyObject * args);
 PyObject * get_ensemble_config(PyObject * self, PyObject * args);
 PyObject * get_ensemble_ntyps(PyObject * self, PyObject * args);
 PyObject * get_n_atoms(PyObject * self, PyObject * args);
+PyObject * nn_get_energy(PyObject * self, PyObject * args);
 // Define the name for the capsules
 #define NAME_SYMFUNC "symmetry_functions"
 #define NAME_ANN "atomic_neural_networks"
@@ -82,6 +83,7 @@ static PyMethodDef Methods[] = {
     {"CreateEnsembleClass", construct_ensemble, METH_VARARGS, "Create an empty ensemble."},
     {"OvverrideEnsembleIndex", override_ensemble, METH_VARARGS, "Override the i-th structure of the ensemble."},
     {"CreateAtomicNN", create_atomic_network, METH_VARARGS, "Create a new Atomic NN from ensemble"},
+    {"NN_GetEnergy", nn_get_energy, METH_VARARGS, "Get energies and forces from an Atomic NN."},
     {NULL, NULL, 0, NULL}
 };
 
@@ -833,4 +835,34 @@ PyObject * get_ensemble_ntyps(PyObject* self, PyObject * args) {
     ntyp = ens->GetNTyp();
 
     return Py_BuildValue("i", ntyp);
+}
+
+
+
+PyObject * nn_get_energy(PyObject * self, PyObject * args) {
+    PyObject * py_ann;
+    PyObject * py_atoms;
+    PyArrayObject * py_forces;
+    int Nx, Ny, Nz;
+    int get_forces;
+    double energy;
+    
+
+    if (!PyArg_ParseTuple(args, "OOpOiii", &py_ann, &py_atoms, &get_forces, &py_forces, &Nx, &Ny, &Nz)) {
+        cerr << "Error, this function requires 7 arguments" << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    AtomicNetwork * ann = (AtomicNetwork*) PyCapsule_GetPointer(py_ann, NAME_ANN);
+    Atoms * atoms = (Atoms*) PyCapsule_GetPointer(py_atoms, NAME_ATOMS);
+
+    double * forces = NULL;
+    if (get_forces)
+        forces = (double*) PyArray_DATA(py_forces);
+
+
+    energy = ann->GetEnergy(atoms, forces, Nx, Ny, Nz);
+
+    return Py_BuildValue("d", energy);
 }

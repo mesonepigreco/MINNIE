@@ -483,6 +483,7 @@ AtomicNetwork::AtomicNetwork(const char * PREFIX) {
 // Build the network from scratch
 AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int Nlim, int Nhidden, int *nphl, int nhl) {
     // Check if the number of nodes per hidden layer
+
     if (!nphl && nhl <= 0) {
         cerr << "Error in construction of AtomicNetwork." << endl;
         cerr << "You must provide or the number of nodes per each hidden layer," << endl;
@@ -495,13 +496,16 @@ AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int 
     N_types = ensemble->GetNTyp();
     int N_sym = symf->GetTotalNSym(N_types);
 
-
+    if (N_lim > N_sym) {
+        N_lim = N_sym;
+        cerr << "WARNING: the PCA limit provided exceeded the number of symmetry fuction. Setted to " << N_lim << endl;
+    }
 
     // Check if Nlim is bigger than N_syms
-    if (N_lim > N_sym) {
-        cerr << "Error, N_lim cannot exceed the number of symmetric functions " << N_sym << endl;
+    if (N_lim <= 0) {
+        cerr << "Error, N_lim must be positive, given " << N_lim << endl;
         cerr << "       Please, tidy your input." << endl;
-        exit(EXIT_FAILURE);
+        throw invalid_argument("n_lim <= 0");
     }
 
     // Setup the supercell
@@ -515,15 +519,18 @@ AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int 
     
     double * means = new double[N_sym_tot];
     double *cvar_mat = new double[N_sym_tot * N_sym_tot];
+
     GetCovarianceSymmetry(ensemble, symf, ensemble->N_x, ensemble->N_y, ensemble->N_z, means, cvar_mat);
 
-    cout << "Nlim:" << N_lim << endl;
-    cout << "Covariance matrix:" << endl;
-    for (int i = 0; i < N_sym; ++i) {
-        for (int j = 0; j < N_sym; ++j) {
-            cout << cvar_mat[N_sym*i + j] << " ";
-        } 
-        cout << endl;
+    if (AN_DEB) {
+        cout << "Nlim:" << N_lim << endl;
+        cout << "Covariance matrix:" << endl;
+        for (int i = 0; i < N_sym; ++i) {
+            for (int j = 0; j < N_sym; ++j) {
+                cout << cvar_mat[N_sym*i + j] << " ";
+            } 
+            cout << endl;
+        }
     }
 
     // Allocate eigenvalues and eigenvectors
