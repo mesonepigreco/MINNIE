@@ -7,6 +7,7 @@
 // A debugging flag
 #define AN_DEB 0
 #define TIME_GET_ENERGY 0
+#define ATOM_TEST_ID 0
 
 double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny, int Nz, double ** grad_bias, double ** grad_sinapsis, double target_energy ) {
     int N_atms = coords->GetNAtoms();
@@ -18,10 +19,6 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
     double E_i, E_tot;
     double dumb = 1;
     int type;
-
-    if (AN_DEB) {
-        cout << "I'm inside GetEnergy." << endl;
-    }
 
     bool back_propagation = false;
 
@@ -81,12 +78,13 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
         // Send into the neural network
         type = coords->types[i];
+        E_i = 0;
         GetNNFromElement(type)->PredictFeatures(1, first_layer, &E_i);
         // Let us rescale the last layer
 
         auto t3 = std::chrono::high_resolution_clock::now();
         if (AN_DEB) {
-            cout << "# Output neuron = " << E_i << " | m = " <<
+            cout << "# Output neuron (" << i << ") = " << E_i << " | m = " <<
                 output_energy_mean.at(type) << " sigma = " <<
                 output_energy_sigma.at(type) << endl;
         }
@@ -97,6 +95,11 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
         // If we need only the force, we can compute them
         if (back_propagation) {
             GetNNFromElement(type)->GetForces(tmp_forces + N_lim*i, output_energy_sigma.at(type));
+
+            if (AN_DEB) {
+                for (int j = 0; j < N_lim; ++j) 
+                    cout << "# First layer gradient of atom " << i << " symfunc " << j << " is " << tmp_forces[N_lim *i +j] << endl;
+            }
         }
 
         auto t4 = std::chrono::high_resolution_clock::now();
@@ -167,6 +170,9 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
                 
 
                 // Get the derivative of the symmetry function with respect to the atom
+                for (int j = 0; j < N_atms; ++j) 
+                    for (int n = 0; n < N_sym; ++n) 
+                        dG_dX[N_sym*j + n] = 0.0;
 
 
                 auto t1 = std::chrono::high_resolution_clock::now();
@@ -174,6 +180,15 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
 
                 auto t2 = std::chrono::high_resolution_clock::now();
+
+                if (AN_DEB && i == ATOM_TEST_ID) {
+                    for (int j = 0; j < N_atms; ++j) {
+                        for (int n = 0; n < N_sym; ++n) {
+                            cout << "# dG / dX -> G atom " << j << " sym " << n << " | x atom " << i << " coord " << x << " = " << dG_dX[N_sym*j + n] << endl;
+                        }
+                    }
+                }
+
                 //cout << "Computing atom: " << i  << "/" << N_atms << " coord " << x ;
                 
                 // Now we must sum over all the symmetric functions
@@ -201,6 +216,10 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
                 time_symderiv += std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count();
                 time_pcatoforce += std::chrono::duration_cast<std::chrono::nanoseconds>(t3-t2).count();
+
+                if (AN_DEB) {
+                    cout << "# Force on atom [" << i << "] coord [" << x << "] = " << forces[3*i + x] << endl;
+                }
 
             }
         }

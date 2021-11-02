@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-
+#include <iomanip>
 #include <libconfig.h++>
 
 #include "ParseInput.hpp"
@@ -282,9 +282,11 @@ void ParseInput(const char * inputfile) {
         for (int i = 0; i < n_steps ; ++i) {
             // Compute the atom energy and force
             if (mode == M_TEST) {
+
+                for (int j = 0; j < 3 *config->GetNAtoms(); ++j ) forces[j] = 0.0;
                 energy = atomic_network->GetEnergy(config, forces);
                 // Print on output
-                cout << std::scientific <<  i*step_size << "\t" <<  energy << "\t" << forces[3 * atom_index + atom_coord] << endl;
+                cout << std::scientific << setprecision(16) <<  i*step_size << "\t" <<  energy << "\t" << forces[3 * atom_index + atom_coord] << endl;
 
                 // Move the atom for the next step
                 config->coords[3 * atom_index + atom_coord] += step_size;

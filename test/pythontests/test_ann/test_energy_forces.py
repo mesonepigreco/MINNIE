@@ -25,6 +25,8 @@ def test_energy_forces(verbose = False):
     network = ANN.AtomicNetwork()
     network.create_network_from_ensemble(symm_funcs, ensemble, pca_limit = 1500, hidden_layers_nodes = [10, 10])
 
+    network.save_cfg("my_network.cfg")
+
     
     energy, force = network.get_energy( ensemble.get_configuration(3), compute_forces = True)
 
@@ -34,8 +36,8 @@ def test_energy_forces(verbose = False):
 
     # Test for energy / forces gradients
     ID_CONFIG = 3
-    ID_ATM = 5
-    X_COORD = 1
+    ID_ATM = 0
+    X_COORD = 0
     DX = 0.01
     NX = 20
 
@@ -59,6 +61,7 @@ def test_energy_forces(verbose = False):
         xx.append(x)
 
     other_ff = -np.gradient(energies, xx)
+    print (np.diff(energies))
 
 
     if verbose:
