@@ -15,7 +15,7 @@ jobs:
     - name: build
       run: |
         sudo apt install libconfig++-dev python3-dev libboost-all-dev python3-numpy python3-pip
-        pip install pytest --user
+        pip install pytest matplotlib --user
     - name: make
       run: make
     - name: pysetup
