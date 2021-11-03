@@ -19,4 +19,4 @@ jobs:
     - name: pysetup
       run: python3 setup.py install --user
     - name: pytest
-      run: pytest
+      run: pytest3
