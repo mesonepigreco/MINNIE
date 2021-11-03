@@ -17,6 +17,6 @@ jobs:
     - name: make
       run: make
     - name: pysetup
-      run: python3 setup.py install
+      run: python3 setup.py install --user
     - name: pytest
       run: pytest
