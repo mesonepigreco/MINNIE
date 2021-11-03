@@ -5,8 +5,8 @@
 #include <stdlib.h>
 
 // A debugging flag
-#define AN_DEB 0
-#define TIME_GET_ENERGY 0
+#define AN_DEB 1
+#define TIME_GET_ENERGY 1
 #define ATOM_TEST_ID 0
 
 double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny, int Nz, double ** grad_bias, double ** grad_sinapsis, double target_energy ) {
