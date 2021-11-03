@@ -13,10 +13,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: build
-      run: sudo apt install libconfig++-dev python3-dev libboost-all-dev python3-numpy python3-pytest
+      run: |
+        sudo apt install libconfig++-dev python3-dev libboost-all-dev python3-numpy python3-pip
+        pip install pytest --user
     - name: make
       run: make
     - name: pysetup
       run: python3 setup.py install --user
     - name: pytest
-      run: pytest3
+      run: pytest
