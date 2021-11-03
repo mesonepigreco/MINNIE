@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: build
-      run: sudo apt install libconfig++-dev python-dev libboost-all-dev python-numpy pytest
+      run: sudo apt install libconfig++-dev python-dev libboost-all-dev python-numpy python-pytest
     - name: make
       run: make
     - name: pysetup
