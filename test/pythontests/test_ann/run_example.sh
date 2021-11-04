@@ -9,7 +9,7 @@ BIN=$BIN_DIR/$EXECUTABLE
 #$BIN generate_twosym.cfg
 
 # Analyze the results
-$BIN test_new.cfg > results.dat
+$BIN test_predict.cfg > results.dat
 
 # Plot the energy and the force
 echo "Results saved in 'results.dat'"

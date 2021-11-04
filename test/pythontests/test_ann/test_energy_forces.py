@@ -23,7 +23,7 @@ def test_energy_forces(verbose = False):
 
     # Lets build an atomic neural network with this set of parameters
     network = ANN.AtomicNetwork()
-    network.create_network_from_ensemble(symm_funcs, ensemble, pca_limit = 1500, hidden_layers_nodes = [10, 10])
+    network.create_network_from_ensemble(symm_funcs, ensemble, pca_limit = 6, hidden_layers_nodes = [10, 10])
 
     network.save_cfg("my_network.cfg")
 

@@ -933,7 +933,7 @@ void NeuralNetwork::Save(string filename) {
 }
 
 
-NeuralNetwork::NeuralNetwork(string filename) {
+NeuralNetwork::NeuralNetwork(string filename, int n_input) {
   Config cfg;
   cfg.readFile(filename.c_str());
 
@@ -942,12 +942,22 @@ NeuralNetwork::NeuralNetwork(string filename) {
   Setting &root = cfg.getRoot();
   Setting &NN = root["NeuralNetwork"];
 
+  int written_input = NN.lookup("n_input");
+
+  if (n_input > 0 && written_input != n_input) {
+    cerr << "ERROR: the input layer of the neural network (n_input)" << endl;
+    cerr << "    for each network must match with the limit on the symmetric functions n_lim" << endl;
+    cerr << "    nlim = " << n_input <<  "; n_input of file '" << filename.c_str() << "' = " << written_input << endl;
+    throw invalid_argument("n_input and n_lim do not match."); 
+  }
+
+
   verbosity_level = 1;
   data_dir = ".";
 
   N_hidden_layers = NN.lookup("n_hidden");
 
-  N_nodes.push_back(NN.lookup("n_input"));
+  N_nodes.push_back(written_input);
   const Setting &n_nodes_setting = NN["list_nodes_hidden"];
   
   for (int i = 0; i  < N_hidden_layers; ++i) {
