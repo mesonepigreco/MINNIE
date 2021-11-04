@@ -136,7 +136,7 @@ public:
   NeuralNetwork(int n_incoming, int n_outcoming, int n_hidden_layer = 0,
 		int * nodes_per_hidden_layer = NULL, int nodes_hl = 0);
   // The following constructure just load the network from file
-  NeuralNetwork(string filename);
+  NeuralNetwork(string filename, int n_input = -1);
   ~NeuralNetwork();
 
   /*

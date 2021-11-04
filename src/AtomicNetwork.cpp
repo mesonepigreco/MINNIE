@@ -6,7 +6,7 @@
 
 // A debugging flag
 #define AN_DEB 1
-#define TIME_GET_ENERGY 1
+#define TIME_GET_ENERGY 0
 #define ATOM_TEST_ID 0
 
 double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny, int Nz, double ** grad_bias, double ** grad_sinapsis, double target_energy ) {
@@ -223,10 +223,11 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
             }
         }
-        //cout << "Done, deleting.." << endl;
+        //cout << "Done, deleting.." << endl << flush;
 
         delete[] tmp_forces;
         delete[] dG_dX;
+        //cout << "After deleting!" << endl << flush;
     }
 
 
@@ -460,7 +461,7 @@ void AtomicNetwork::LoadCFG(const char * PREFIX) {
     NeuralNetwork* atomic_nn;
     for (int i = 0; i < N_types; ++i) {
         filename = string(PREFIX) + string("_") + to_string(atomic_types.at(i)) + string(".cfg");
-        atomic_nn = new NeuralNetwork(filename);
+        atomic_nn = new NeuralNetwork(filename, N_lim);
         atomic_network.push_back(atomic_nn);
     }
 
