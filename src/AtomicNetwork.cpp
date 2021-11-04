@@ -201,7 +201,7 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
                     for (int k = 0; k  < N_lim; ++k) {
                         dS_dX = 0;
                         for (int n = 0; n < N_sym; ++n) {
-                           dS_dX += eigvects[N_lim*k + n] * dG_dX[N_sym * j + n];
+                           dS_dX += eigvects[N_sym*k + n] * dG_dX[N_sym * j + n];
                         }
                         dS_dX /= sqrt(eigvals[k]);
 
