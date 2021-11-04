@@ -43,6 +43,13 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
         // }
     }
 
+    if (AN_DEB) {
+        cout << "# PERIOD: " << Nx << " " << Ny << " " << Nz << endl;
+        for (int i = 0; i < 3 * coords->GetNAtoms(); ++i) {
+            cout << "# atom " << i / 3 << " coord " << i % 3 << " = " << coords->coords[i] << endl; 
+        }
+    }
+
     // Get the symmetric functions
     //cout << "Getting symmetric functions..." << endl;
     symm_f->GetSymmetricFunctions(coords, Nx, Ny, Nz, symm_fynctions);
@@ -208,7 +215,6 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
                         //cout << "AT " << j << "sqrteig:" << sqrt(eigvals[j]) << ", " << "dSdX:" << dS_dX << " ADDING:" << tmp_forces[N_lim*j + k] * dS_dX << endl;
                         // Get the force
                         forces[3*i + x] += tmp_forces[N_lim*j + k] * dS_dX;
-
                     }
                 }
                 auto t3 = std::chrono::high_resolution_clock::now();

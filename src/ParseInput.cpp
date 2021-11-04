@@ -284,7 +284,7 @@ void ParseInput(const char * inputfile) {
             if (mode == M_TEST) {
 
                 for (int j = 0; j < 3 *config->GetNAtoms(); ++j ) forces[j] = 0.0;
-                energy = atomic_network->GetEnergy(config, forces);
+                energy = atomic_network->GetEnergy(config, forces, Nx, Ny, Nz);
                 // Print on output
                 cout << std::scientific << setprecision(16) <<  i*step_size << "\t" <<  energy << "\t" << forces[3 * atom_index + atom_coord] << endl;
 

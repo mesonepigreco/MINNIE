@@ -76,7 +76,7 @@ static PyMethodDef Methods[] = {
     {"GetCutoffTypeRadius", get_cutoff, METH_VARARGS, "Get the cutoff funciton (type and radius)."},
     {"SymPrintInfo", sym_print_info, METH_VARARGS, "Print Info about the symmetric functions"},
     {"GetNSyms", get_n_sym_functions, METH_VARARGS, "Get the number of symmetric functions."},
-    {"LoadNNFromCFG", atomic_network_save_to_cfg, METH_VARARGS, "Load the NN from the configuration file"},
+    {"LoadNNFromCFG", atomic_network_load_from_cfg, METH_VARARGS, "Load the NN from the configuration file"},
     {"SaveNNToCFG", atomic_network_save_to_cfg, METH_VARARGS, "Save the NN into the configuration file"},
     {"GetNConfigsEnsemble", get_ensemble_nconfigs, METH_VARARGS, "Get the number of configurations in an ensemble"},
     {"GetNTypsEnsemble", get_ensemble_ntyps, METH_VARARGS, "Get the number of atomic species in the ensemble"},
