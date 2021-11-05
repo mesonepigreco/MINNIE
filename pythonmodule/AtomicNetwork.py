@@ -25,7 +25,7 @@ class AtomicNetwork:
 
         self._minnie = None 
         if filename:
-            self.load_from_cfg(filename)
+            self.load_cfg(filename)
 
     def is_initialized(self):
         """

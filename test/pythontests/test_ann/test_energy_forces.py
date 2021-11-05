@@ -38,8 +38,9 @@ def test_energy_forces(verbose = False):
     ID_CONFIG = 0
     ID_ATM = 0
     X_COORD = 0
-    DX = 0.01
-    NX = 30
+    DX = 0.001
+    NX = 50
+
 
     cfg = ensemble.get_configuration(ID_CONFIG)
     coords, types, uc = cfg.get_coords_types_uc()
@@ -74,11 +75,27 @@ def test_energy_forces(verbose = False):
         plt.show()
     
     assert np.max(np.abs(other_ff[1:-1] - ff[1:-1])) / np.mean(np.abs(ff)) < 1e-6
-    
-        
 
+def test_single_eval(verbose = False):
+    ENSEMBLE_LOC = "../../ReadEnsemble/new_ensemble"
+
+    ensemble = ENS.Ensemble()
+    ensemble.load_from_directory(ENSEMBLE_LOC,
+                                 n_configs = 100,
+                                 n_atoms = 40)
+
+
+    network = ANN.AtomicNetwork("my_network.cfg")
+
+    en, forc =  network.get_energy( ensemble.get_configuration(0), compute_forces = True)
+
+    if verbose:
+        print ("ENERGY:", en)
+        print("FORCE:", forc)
+    
     
     
 
 if __name__ == "__main__":
-    test_energy_forces(True)
+    #test_energy_forces(True)
+    test_single_eval(True)
