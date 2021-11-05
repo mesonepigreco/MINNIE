@@ -25,7 +25,7 @@ def get_all_data(fname, ann_id, coord_id = 1):
         for line in fp.readlines():
             line = line.strip()
             if not line.startswith("#"):
-                data["scalar_product"] = np.dot(toscalarg, toscalarf)
+                data["scalar_product"] = 0#np.dot(toscalarg, toscalarf)
                 all_data.append(data)
                 current_t += 1
                 current_id = -1

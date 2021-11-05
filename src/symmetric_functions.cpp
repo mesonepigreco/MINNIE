@@ -365,6 +365,7 @@ double DG4_DX(double cutoff, double zeta, double eta, int lambda, int cutoff_typ
         d_cutoff_function(cutoff_type, cutoff, rij) * d_rij_dx * cutoff_function(cutoff_type, cutoff, rjk);
     }
     res *= pow(2, 1 - zeta);
+
     return res; 
 }
 
@@ -433,15 +434,16 @@ void SymmetricFunctions::GetSymmetricFunctionsInput(const double * coords, const
   int index = 0;
   for (int i = 0; i < N_G4; ++i) {
     for (int j = 0; j < N_types; ++j) {
-      int counter_j = 0;
+      //int counter_j = 0;
       for (int k = j; k < N_types; ++k) {
-	index = N_types*(N_types+1)/2 * i + counter_j + k;
-	sym_values[N_types*N_G2 + index] =
+	//index = N_types*(N_types+1)/2 * i + counter_j + k;
+  cout << "INDEX: " << index << " JK:" << j << " " << k << " TOT:" << GetTotalNSym(N_types) << endl;
+	sym_values[N_types*N_G2 + index++] =
 	  G4_symmetry_func(cutoff_radius, G4_ZETA.at(i), G4_ETA.at(i),
 			   G4_LAMBDA.at(i), cutoff_function_type,
 			   coords, atm_types, N_atoms, atom_index, j, k);
       }
-      counter_j += N_types - j;
+      //counter_j += N_types - j;
     }
   }
 }
@@ -509,12 +511,9 @@ void SymmetricFunctions::GetDerivatives(Atoms * structure, int Nx, int Ny, int N
     int index = 0;
     for (int i = 0; i < N_G4; ++i) {
       for (int j = 0; j < N_types; ++j) {
-        int counter_j = 0;
         for (int k = j; k < N_types; ++k) {
-          index = N_types*N_types * i + counter_j + k + n_sym *atom_index;
-          sym_diff[N_types*N_G2 + index] = 0;
+          sym_diff[n_sym *atom_index + N_types*N_G2 + index++] = 0;
         }
-        counter_j += N_types - j;
       }
     }
 
@@ -545,15 +544,12 @@ void SymmetricFunctions::GetDerivatives(Atoms * structure, int Nx, int Ny, int N
       int index = 0;
       for (int i = 0; i < N_G4; ++i) {
         for (int j = 0; j < N_types; ++j) {
-          int counter_j = 0;
           for (int k = j; k < N_types; ++k) {
-      index = N_types*N_types * i + counter_j + k + n_sym *atom_index;
-      sym_diff[N_types*N_G2 + index] +=
+      sym_diff[n_sym *atom_index + N_types*N_G2 + index++] +=
         DG4_DX(cutoff_radius, G4_ZETA.at(i), G4_ETA.at(i),
             G4_LAMBDA.at(i), cutoff_function_type,
             coords, atm_types, nat_sc, atom_index, j, k, d_atm_index_replica, d_cart_coord);
           }
-          counter_j += N_types - j;
         }
       }
     }
