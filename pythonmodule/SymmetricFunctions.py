@@ -249,7 +249,7 @@ class SymmetricFunctions(object):
         Add a new symmetric function of type G4
         """
 
-        NNcpp.AddSymG4(self._SymFunc, np.double(eta), np.double(zeta), np.int(lambd))
+        NNcpp.AddSymG4(self._SymFunc, np.double(eta), np.double(zeta), np.intc(lambd))
 
     
     def get_number_of_g2(self):

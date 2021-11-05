@@ -1,3 +1,5 @@
+import sys, os
+
 import minnie, minnie.Ensemble as ENS
 import minnie, minnie.SymmetricFunctions as SF
 import minnie, minnie.AtomicNetwork as ANN
@@ -8,6 +10,9 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 def test_energy_forces(verbose = False):
+    total_path = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(total_path)
+    
     ENSEMBLE_LOC = "../../ReadEnsemble/new_ensemble"
 
     ensemble = ENS.Ensemble()
@@ -57,7 +62,7 @@ def test_energy_forces(verbose = False):
         cfg.set_coords_types(new_coords, types, uc)
         en, f = network.get_energy(cfg, True)
 
-        energies.append(energy)
+        energies.append(en)
         ff.append(f[ID_ATM, X_COORD])
         xx.append(x)
 
@@ -74,7 +79,7 @@ def test_energy_forces(verbose = False):
         plt.tight_layout()
         plt.show()
     
-    assert np.max(np.abs(other_ff[1:-1] - ff[1:-1])) / np.mean(np.abs(ff)) < 1e-6
+    assert np.max(np.abs(other_ff[1:-1] - ff[1:-1])) / np.mean(np.abs(ff)) < 1e-4, np.abs(other_ff[1:-1] - ff[1:-1]) / np.mean(np.abs(ff))
 
 def test_single_eval(verbose = False):
     ENSEMBLE_LOC = "../../ReadEnsemble/new_ensemble"

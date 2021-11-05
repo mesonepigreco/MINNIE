@@ -5,7 +5,7 @@ import minnie.SymmetricFunctions as SF
 
 def test_symmetricget():
     sf = SF.SymmetricFunctions()
-    sf.load_from_cfg("../../ReadEnsemble/input_other_ensemble.cfg")
+    sf.load_cfg("../../ReadEnsemble/input_other_ensemble.cfg")
 
 
     ng2 = sf.get_number_of_g2()
@@ -37,7 +37,7 @@ def test_symmetricget():
     sf.add_g2_function(0.4, 1)    
     sf.add_g4_function(0.8, 1.2, 2)
     sf.print_info()
-    sf.save_to_cfg("new_symf.cfg")
+    sf.save_cfg("new_symf.cfg")
 
     
 
