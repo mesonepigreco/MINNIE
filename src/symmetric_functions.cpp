@@ -332,7 +332,6 @@ double DG4_DX(double cutoff, double zeta, double eta, int lambda, int cutoff_typ
       if (k == d_atm_index) continue;
       if (k == atom_index) continue;
       if (atom_types[k] != other_typ) continue;
-      cout << "# NONZERO" << endl;
 
       // Get the position of the new atom
       x2 = coords[3*k];
@@ -344,6 +343,7 @@ double DG4_DX(double cutoff, double zeta, double eta, int lambda, int cutoff_typ
       rjk = sqrt(rjk);
 
       if (rjk > cutoff) continue;
+      cout << "# NONZERO" << endl;
 
       // Get the angle
       cos_theta = (x1-x0)*(x2-x0) + (y1 - y0)*(y2 - y0) + (z1 - z0)*(z2 - z0);
