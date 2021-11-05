@@ -97,5 +97,5 @@ def test_single_eval(verbose = False):
     
 
 if __name__ == "__main__":
-    #test_energy_forces(True)
+    test_energy_forces(True)
     test_single_eval(True)

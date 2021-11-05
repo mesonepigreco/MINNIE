@@ -487,49 +487,74 @@ void SymmetricFunctions::GetDerivatives(Atoms * structure, int Nx, int Ny, int N
   int N_types = structure->GetNTypes();
 
   double * coords = supercell->coords;
+  double * uc_coords = structure->coords;
   int * atm_types = supercell->types;
 
   // For each atom in the current structure compute the symmetric functions
   int n_sym = GetTotalNSym(structure->GetNTypes());
 
+  int n_replicas = Nx * Ny * Nz;
 
   // Compute the derivatives of the C2
   int excluded = 0;
   for (int atom_index = 0; atom_index < nat; ++atom_index){ 
-
-    // Check if the function goes outside the cutoff with the atom derived.
-    // In this case the derivative do not enter
-    double r2 = 0;
-    for (int i = 0; i < 3; ++i) r2 += (coords[3 * atom_index + i] - coords[3*d_atm_index + i]) * (coords[3 * atom_index + i] - coords[3*d_atm_index + i]);
-    if (r2 > cutoff_radius * cutoff_radius) {
-      //excluded += 1;
-      continue;
-    } 
-
-    // G2 symmetry functions
+    // G2 symmetry functions initialization
     for (int i = 0; i < N_G2; ++i) {
-      // Cycle over the types
       for (int j = 0; j < N_types; ++j) {
-        sym_diff[n_sym *atom_index+ N_types * i + j] = DG2_DX(cutoff_radius, G2_ETA.at(i),
-                  G2_RS.at(i), cutoff_function_type,
-                  coords, atm_types, nat_sc, atom_index, j, d_atm_index, d_cart_coord);
+          sym_diff[n_sym *atom_index+ N_types * i + j] = 0;
       }
     }
-    
 
-    // Use the G4
+    // G4 initialization
     int index = 0;
     for (int i = 0; i < N_G4; ++i) {
       for (int j = 0; j < N_types; ++j) {
         int counter_j = 0;
         for (int k = j; k < N_types; ++k) {
-    index = N_types*N_types * i + counter_j + k + n_sym *atom_index;
-    sym_diff[N_types*N_G2 + index] =
-      DG4_DX(cutoff_radius, G4_ZETA.at(i), G4_ETA.at(i),
-          G4_LAMBDA.at(i), cutoff_function_type,
-          coords, atm_types, nat_sc, atom_index, j, k, d_atm_index, d_cart_coord);
+          index = N_types*N_types * i + counter_j + k + n_sym *atom_index;
+          sym_diff[N_types*N_G2 + index] = 0;
         }
         counter_j += N_types - j;
+      }
+    }
+
+    for (int k = 0; k < n_replicas; ++ k) {
+      int d_atm_index_replica = d_atm_index + k * nat;
+
+      // Check if the function goes outside the cutoff with the atom derived.
+      double r2 = 0;
+      for (int i = 0; i < 3; ++i) r2 += (uc_coords[3 * atom_index + i] - coords[3*d_atm_index_replica + i]) * (uc_coords[3 * atom_index + i] - coords[3*d_atm_index_replica + i]);
+      if (r2 > cutoff_radius * cutoff_radius) {
+        excluded += 1;
+        continue;
+      } 
+
+      // G2 symmetry functions
+      for (int i = 0; i < N_G2; ++i) {
+        // Cycle over the types
+        for (int j = 0; j < N_types; ++j) {
+            sym_diff[n_sym *atom_index+ N_types * i + j] += DG2_DX(cutoff_radius, G2_ETA.at(i),
+                      G2_RS.at(i), cutoff_function_type,
+                      coords, atm_types, nat_sc, atom_index, j, d_atm_index_replica, d_cart_coord);
+        }
+      }
+      
+      
+
+      // Use the G4
+      int index = 0;
+      for (int i = 0; i < N_G4; ++i) {
+        for (int j = 0; j < N_types; ++j) {
+          int counter_j = 0;
+          for (int k = j; k < N_types; ++k) {
+      index = N_types*N_types * i + counter_j + k + n_sym *atom_index;
+      sym_diff[N_types*N_G2 + index] +=
+        DG4_DX(cutoff_radius, G4_ZETA.at(i), G4_ETA.at(i),
+            G4_LAMBDA.at(i), cutoff_function_type,
+            coords, atm_types, nat_sc, atom_index, j, k, d_atm_index_replica, d_cart_coord);
+          }
+          counter_j += N_types - j;
+        }
       }
     }
   }
