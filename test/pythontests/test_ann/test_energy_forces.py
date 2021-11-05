@@ -23,23 +23,23 @@ def test_energy_forces(verbose = False):
 
     # Lets build an atomic neural network with this set of parameters
     network = ANN.AtomicNetwork()
-    network.create_network_from_ensemble(symm_funcs, ensemble, pca_limit = 6, hidden_layers_nodes = [10, 10])
+    network.create_network_from_ensemble(symm_funcs, ensemble, pca_limit = 15, hidden_layers_nodes = [10, 10])
 
     network.save_cfg("my_network.cfg")
 
     
-    energy, force = network.get_energy( ensemble.get_configuration(3), compute_forces = True)
+    energy, force = network.get_energy( ensemble.get_configuration(0), compute_forces = True)
 
     if verbose:
         print("My energy:", energy)
         print("My force:", force)
 
     # Test for energy / forces gradients
-    ID_CONFIG = 3
+    ID_CONFIG = 0
     ID_ATM = 0
     X_COORD = 0
     DX = 0.01
-    NX = 20
+    NX = 30
 
     cfg = ensemble.get_configuration(ID_CONFIG)
     coords, types, uc = cfg.get_coords_types_uc()
