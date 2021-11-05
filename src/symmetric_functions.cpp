@@ -193,6 +193,8 @@ double G4_symmetry_func(double cutoff, double zeta, double eta, int lambda, int 
 
       if (rjk > cutoff) continue;
 
+      //cout << "# nonzero contrib: atoms " << i <<" " << k << " (types: " << atom_types[i] << " " << atom_types[k] << ")" << endl;
+
       // Get the angle
       cos_theta = (x1-x0) * (x2-x0) +
 	(y1 - y0) * (y2 - y0) +
@@ -204,7 +206,6 @@ double G4_symmetry_func(double cutoff, double zeta, double eta, int lambda, int 
 	cutoff_function(cutoff_type, cutoff, rij) * cutoff_function(cutoff_type, cutoff, rjk);
     }
   }
-
   // Apply the normalization
   ret *= pow(2, 1 - zeta);
   return ret;
@@ -267,6 +268,8 @@ double DG4_DX(double cutoff, double zeta, double eta, int lambda, int cutoff_typ
           // Get the distance between the two atoms
           rjk = (x0 - x2)*(x0 - x2) + (y0 - y2)*(y0 - y2) + (z0 - z2)*(z0 - z2);
           if (rjk > cutoff*cutoff) continue;
+
+          cout << "# NONZERO AHHAHAH" << endl;
           rjk = sqrt(rjk);
           d_rjk2_dx = 2 * ( coords[3*d_atm_index + d_coord_index] - coords[3*k + d_coord_index]);
           d_rjk_dx = d_rjk2_dx / (2 * rjk);
@@ -304,10 +307,10 @@ double DG4_DX(double cutoff, double zeta, double eta, int lambda, int cutoff_typ
     // Here the selected atom is not the central one.
 
     // Check if the atom is of the proper type
-    int other_typ = type_1;
+    int other_typ = type_2;
     if (atom_types[d_atm_index] != type_1) {
-      other_typ = type_2;
-      if (atom_types[d_atm_index != type_2]) return 0;
+      other_typ = type_1;
+      if (atom_types[d_atm_index] != type_2) return 0;
     }
     // Get the coordinates for the atom of the derivative
     x1 = coords[3*d_atm_index];
@@ -329,6 +332,7 @@ double DG4_DX(double cutoff, double zeta, double eta, int lambda, int cutoff_typ
       if (k == d_atm_index) continue;
       if (k == atom_index) continue;
       if (atom_types[k] != other_typ) continue;
+      cout << "# NONZERO" << endl;
 
       // Get the position of the new atom
       x2 = coords[3*k];
@@ -437,11 +441,12 @@ void SymmetricFunctions::GetSymmetricFunctionsInput(const double * coords, const
       //int counter_j = 0;
       for (int k = j; k < N_types; ++k) {
 	//index = N_types*(N_types+1)/2 * i + counter_j + k;
-  cout << "INDEX: " << index << " JK:" << j << " " << k << " TOT:" << GetTotalNSym(N_types) << endl;
-	sym_values[N_types*N_G2 + index++] =
-	  G4_symmetry_func(cutoff_radius, G4_ZETA.at(i), G4_ETA.at(i),
+  double value =  G4_symmetry_func(cutoff_radius, G4_ZETA.at(i), G4_ETA.at(i),
 			   G4_LAMBDA.at(i), cutoff_function_type,
 			   coords, atm_types, N_atoms, atom_index, j, k);
+	sym_values[N_types*N_G2 + index++] = value; 
+
+  cout << "# SYM INDEX (ATM: " << atom_index << "): " << index-1 << " TYPE 1: " << j << "  TYPE 2: " << k << "   IS  " << sym_values[N_types*N_G2 + index-1] << endl;
       }
       //counter_j += N_types - j;
     }
@@ -449,7 +454,7 @@ void SymmetricFunctions::GetSymmetricFunctionsInput(const double * coords, const
 }
 
 
-void SymmetricFunctions::GetSymmetricFunctions(Atoms * structure, int Nx, int Ny, int Nz, double * sym_values) {
+void SymmetricFunctions::GetSymmetricFunctions(Atoms * structure, int Nx, int Ny, int Nz, double * sym_values, int N_types) {
   Atoms * supercell;
 
   // Prepare the supercell
@@ -457,6 +462,10 @@ void SymmetricFunctions::GetSymmetricFunctions(Atoms * structure, int Nx, int Ny
 
   int nat_sc = supercell->GetNAtoms();
   int nat = structure->GetNAtoms();
+
+  cout << "# I have " << N_types << endl;
+  if (N_types < 0) N_types = structure->GetNTypes();
+  cout << "# I have " << N_types << endl;
 /* 
   cout << "UNIT CELL:" << endl;
   for (int i = 0; i < 3; ++i) {
@@ -470,15 +479,16 @@ void SymmetricFunctions::GetSymmetricFunctions(Atoms * structure, int Nx, int Ny
   } */
 
   // For each atom in the current structure compute the symmetric functions
-  int n_sym = GetTotalNSym(structure->GetNTypes());
+  int n_sym = GetTotalNSym(N_types);
 
   for (int i = 0; i < nat; ++i) {
-    GetSymmetricFunctionsInput(supercell->coords, supercell->types, nat_sc, structure->GetNTypes(), i, sym_values + i * n_sym);
+    cout << "# GET SYM OF ATOM "<< i << "  (TYPE: " << structure->types[i] <<  ")" << endl;
+    GetSymmetricFunctionsInput(supercell->coords, supercell->types, nat_sc, N_types, i, sym_values + i * n_sym);
   }
   delete supercell;
 }
 
-void SymmetricFunctions::GetDerivatives(Atoms * structure, int Nx, int Ny, int Nz, int d_atm_index, int d_cart_coord, double * sym_diff) {
+void SymmetricFunctions::GetDerivatives(Atoms * structure, int Nx, int Ny, int Nz, int d_atm_index, int d_cart_coord, double * sym_diff, int N_types) {
   Atoms * supercell;
 
   // Prepare the supercell
@@ -486,7 +496,7 @@ void SymmetricFunctions::GetDerivatives(Atoms * structure, int Nx, int Ny, int N
 
   int nat_sc = supercell->GetNAtoms();
   int nat = structure->GetNAtoms();
-  int N_types = structure->GetNTypes();
+  if (N_types < 0) N_types = structure->GetNTypes();
 
   double * coords = supercell->coords;
   double * uc_coords = structure->coords;
@@ -549,6 +559,8 @@ void SymmetricFunctions::GetDerivatives(Atoms * structure, int Nx, int Ny, int N
         DG4_DX(cutoff_radius, G4_ZETA.at(i), G4_ETA.at(i),
             G4_LAMBDA.at(i), cutoff_function_type,
             coords, atm_types, nat_sc, atom_index, j, k, d_atm_index_replica, d_cart_coord);
+
+            cout << "# DERIVATIVE: d_atm: " << d_atm_index_replica << " types: " << j << " " << k << "  value = " <<  sym_diff[n_sym *atom_index + N_types*N_G2 + index-1] << endl;
           }
         }
       }

@@ -155,7 +155,7 @@ if __name__ == "__main__":
     plt.tight_layout()
 
     nsym = np.shape(dG_anals)[-1]
-    nsym = 4 
+    #nsym = 4 
 
     for k in range(nsym):
         plt.figure()

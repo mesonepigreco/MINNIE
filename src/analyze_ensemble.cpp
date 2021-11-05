@@ -226,7 +226,7 @@ void PrintSymmetricFunctions(string file_path, SymmetricFunctions * symf, Ensemb
         sym_values = new double[N_syms];
 
         // Get the symmetric functions for the given structure
-        symf->GetSymmetricFunctions(atm, Nx, Ny, Nz, sym_values); 
+        symf->GetSymmetricFunctions(atm, Nx, Ny, Nz, sym_values, -1); 
 
         // Print the values of the symmetric functions in the file
         of << i;
@@ -336,7 +336,7 @@ void GetCovarianceSymmetry(Ensemble * ens, SymmetricFunctions* symmf, int Nx, in
 
         // Get the symmetric functions for this configuration
         sym_values = new double[N_sym_tot*N_atoms];
-        symmf->GetSymmetricFunctions(config, Nx, Ny, Nz, sym_values);
+        symmf->GetSymmetricFunctions(config, Nx, Ny, Nz, sym_values, -1);
 
 
         // Cycle over the atoms
@@ -440,7 +440,7 @@ void AnalyzeForces(string anal_path, Ensemble * ensemble, SymmetricFunctions* sy
 
 
         total_sym_functions[i] = new double[N_sym * N_atoms];
-        symm_func->GetSymmetricFunctions(config, Nx, Ny, Nz, total_sym_functions[i]);
+        symm_func->GetSymmetricFunctions(config, Nx, Ny, Nz, total_sym_functions[i], -1);
 
         for (int j = 0; j <= i; ++j) {
             nat_j = config->GetNAtoms();

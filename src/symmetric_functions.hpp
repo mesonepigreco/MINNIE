@@ -98,7 +98,7 @@ public:
    *      The symmetric functions per each atom in the original structure.
    * 
    */
-  void GetSymmetricFunctions(Atoms * structure, int Nx, int Ny, int Nz, double * sym_values);
+  void GetSymmetricFunctions(Atoms * structure, int Nx, int Ny, int Nz, double * sym_values, int N_types = -1);
 
   /*
    * This method, in a way similar to the previous one, computes the derivatives of the symmetric functions
@@ -119,7 +119,7 @@ public:
    *      The derivatives of each symmetric function with respect to the specified atomic displacement.
    * 
    */
-  void GetDerivatives(Atoms * structure, int Nx, int Ny, int Nz, int atm_index, int cart_coord, double * sym_diff);
+  void GetDerivatives(Atoms * structure, int Nx, int Ny, int Nz, int atm_index, int cart_coord, double * sym_diff, int N_types = -1);
   
   
   // Add a G2 function

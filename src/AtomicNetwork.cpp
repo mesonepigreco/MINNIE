@@ -45,6 +45,7 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
     if (AN_DEB) {
         cout << "# PERIOD: " << Nx << " " << Ny << " " << Nz << endl;
+        cout << "# NTYPS: " << N_types << endl;
         for (int i = 0; i < 3 * coords->GetNAtoms(); ++i) {
             cout << "# atom " << i / 3 << " coord " << i % 3 << " = " << coords->coords[i] << endl; 
         }
@@ -52,7 +53,7 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
     // Get the symmetric functions
     //cout << "Getting symmetric functions..." << endl;
-    symm_f->GetSymmetricFunctions(coords, Nx, Ny, Nz, symm_fynctions);
+    symm_f->GetSymmetricFunctions(coords, Nx, Ny, Nz, symm_fynctions, N_types);
     //cout << "Symmetric functions obtained." << endl;
 
     int time_pca = 0, time_nnfeatures = 0, time_forces = 0;
@@ -183,7 +184,7 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
 
                 auto t1 = std::chrono::high_resolution_clock::now();
-                symm_f->GetDerivatives(coords, Nx, Ny, Nz, i, x, dG_dX); // TODO return the list of interacting atoms
+                symm_f->GetDerivatives(coords, Nx, Ny, Nz, i, x, dG_dX, N_types); // TODO return the list of interacting atoms
 
 
                 auto t2 = std::chrono::high_resolution_clock::now();
