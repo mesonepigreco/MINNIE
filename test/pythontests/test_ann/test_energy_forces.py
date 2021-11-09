@@ -36,8 +36,9 @@ def test_energy_forces(verbose = False):
 
     network.save_cfg("my_network.cfg")
 
-    cfg = ATM.Atoms(3)
-    cfg.load_scf("../../GenerateNetwork/three_atoms.scf")
+    #cfg = ATM.Atoms(3)
+    #cfg.load_scf("../../GenerateNetwork/three_atoms.scf")
+    cfg = ensemble.get_configuration(0)
     energy, force = network.get_energy( cfg, compute_forces = True)
 
     if verbose:

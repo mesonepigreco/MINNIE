@@ -461,9 +461,9 @@ void SymmetricFunctions::GetSymmetricFunctions(Atoms * structure, int Nx, int Ny
   int nat_sc = supercell->GetNAtoms();
   int nat = structure->GetNAtoms();
 
-  cout << "# I have " << N_types << endl;
+  //cout << "# I have " << N_types << endl;
   if (N_types < 0) N_types = structure->GetNTypes();
-  cout << "# I have " << N_types << endl;
+  //cout << "# I have " << N_types << endl;
 /* 
   cout << "UNIT CELL:" << endl;
   for (int i = 0; i < 3; ++i) {
@@ -480,7 +480,7 @@ void SymmetricFunctions::GetSymmetricFunctions(Atoms * structure, int Nx, int Ny
   int n_sym = GetTotalNSym(N_types);
 
   for (int i = 0; i < nat; ++i) {
-    cout << "# GET SYM OF ATOM "<< i << "  (TYPE: " << structure->types[i] <<  ")" << endl;
+    //cout << "# GET SYM OF ATOM "<< i << "  (TYPE: " << structure->types[i] <<  ")" << endl;
     GetSymmetricFunctionsInput(supercell->coords, supercell->types, nat_sc, N_types, i, sym_values + i * n_sym);
   }
   delete supercell;
@@ -559,13 +559,14 @@ void SymmetricFunctions::GetDerivatives(Atoms * structure, int Nx, int Ny, int N
             G4_LAMBDA.at(i), cutoff_function_type,
             coords, atm_types, nat_sc, atom_index, j, k, d_atm_index_replica, d_cart_coord);
 
-            cout << "# DERIVATIVE: d_atm: " << d_atm_index_replica << " atm: " << atom_index << " types: " << j << " " << k << "  value = " <<  sym_diff[total_index] << " index: " << index -1 << " tot i: " << total_index<< endl;
+            //cout << "# DERIVATIVE: d_atm: " << d_atm_index_replica << " atm: " << atom_index << " types: " << j << " " << k << "  value = " <<  sym_diff[total_index] << " index: " << index -1 << " tot i: " << total_index<< endl;
           }
         }
       }
     }
   }
 
+  /*
   cout << "# DD:" << endl;
   for (int atom_index = 0; atom_index < nat; ++ atom_index) {
       int index = 0;
@@ -576,7 +577,7 @@ void SymmetricFunctions::GetDerivatives(Atoms * structure, int Nx, int Ny, int N
           }
         }
       }
-  }
+  }*/
 
 
 
@@ -824,7 +825,7 @@ void SymmetricFunctions::SaveToCFG(const char * cfg_filename) {
   // Add the main environment
   Setting& main_env = root.add(SYMMFUNC_ENVIRON, Setting::TypeGroup);
 
-  cout << "Saving the number and the cutoff" << endl;
+  //cout << "Saving the number and the cutoff" << endl;
   // Add the number of symmetric functions
   main_env.add(SYMMFUNC_NG2, Setting::TypeInt) = N_G2;
   main_env.add(SYMMFUNC_NG4, Setting::TypeInt) = N_G4;
