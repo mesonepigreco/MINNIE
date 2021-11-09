@@ -28,6 +28,8 @@ PyObject * symmetry_save_to_cfg(PyObject * self, PyObject * args);
 PyObject * atomic_network_load_from_cfg(PyObject * self, PyObject * args);
 PyObject * atomic_network_save_to_cfg(PyObject * self, PyObject * args);
 PyObject * construct_atoms(PyObject*self, PyObject * args);
+PyObject * load_atoms(PyObject*self, PyObject * args);
+PyObject * print_atoms(PyObject*self, PyObject * args);
 PyObject * construct_ensemble(PyObject* self, PyObject * args);
 PyObject * set_atoms_coords_type(PyObject * self, PyObject * args);
 PyObject * get_atoms_coords_type(PyObject * self, PyObject * args);
@@ -63,6 +65,8 @@ static PyMethodDef Methods[] = {
     {"LoadSymFuncFromCFG", symmetry_load_from_cfg, METH_VARARGS, "Load the symmetric function from a configuration file"},
     {"SaveSymFuncToCFG", symmetry_save_to_cfg, METH_VARARGS, "Save the symmetric function to a configuration file"},
     {"CreateAtomsClass", construct_atoms, METH_VARARGS, "Create the Atoms class"},
+    {"LoadSCF", load_atoms, METH_VARARGS, "Load an SCF file to create an Atoms class"},
+    {"PrintAtoms", print_atoms, METH_VARARGS, "Print on STDOUT the current atoms"},
     {"GetNAtoms", get_n_atoms, METH_VARARGS, "Get how many atoms are inside an Atom class"},
     {"GetEnsembleConfig", get_ensemble_config, METH_VARARGS, "Get the ensemble configuration"},
     {"SetAtomsCoordsTypes", set_atoms_coords_type, METH_VARARGS, "Set from python the Atoms class attributes"},
@@ -343,6 +347,52 @@ PyObject * symmetry_load_from_cfg(PyObject* self, PyObject * args) {
     // Return none
     return Py_BuildValue("");
 }
+
+
+PyObject * load_atoms(PyObject* self, PyObject * args) {
+    const char * fname;
+    PyObject * py_atoms;
+
+
+    if (!PyArg_ParseTuple(args, "Os", &py_atoms, &fname)) {
+        cerr << "Error this function requires 2 arguments:" << endl;
+        cerr << "The symmetry function class and the file name." << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    // Retain the pointer to the symmetric function class
+    Atoms*  atoms= (Atoms*) PyCapsule_GetPointer(py_atoms, NAME_ATOMS);
+
+    // Load the symmetric function from the given file
+    atoms->ReadSCF(fname);
+
+    // Return none
+    return Py_BuildValue("");
+}
+
+
+PyObject * print_atoms(PyObject* self, PyObject * args) {
+    PyObject * py_atoms;
+
+
+    if (!PyArg_ParseTuple(args, "O", &py_atoms)) {
+        cerr << "Error this function requires 1 arguments:" << endl;
+        cerr << "The symmetry function class and the file name." << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    // Retain the pointer to the symmetric function class
+    Atoms*  atoms= (Atoms*) PyCapsule_GetPointer(py_atoms, NAME_ATOMS);
+
+    // Load the symmetric function from the given file
+    atoms->PrintCoords();
+
+    // Return none
+    return Py_BuildValue("");
+}
+
 
 /*
  * Save the symmetric function on a file

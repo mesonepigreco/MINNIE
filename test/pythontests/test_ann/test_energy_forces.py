@@ -1,8 +1,9 @@
 import sys, os
 
 import minnie, minnie.Ensemble as ENS
-import minnie, minnie.SymmetricFunctions as SF
-import minnie, minnie.AtomicNetwork as ANN
+import minnie.SymmetricFunctions as SF
+import minnie.AtomicNetwork as ANN
+import minnie.Atoms as ATM
 
 #import sscha, sscha.Ensemble
 import numpy as np
@@ -28,14 +29,16 @@ def test_energy_forces(verbose = False):
     symm_funcs.add_g4_grid(r_value = 3, N = 1)
     print("TOTNSYM:", symm_funcs.get_number_of_g4)
 
+    
     # Lets build an atomic neural network with this set of parameters
     network = ANN.AtomicNetwork()
-    network.create_network_from_ensemble(symm_funcs, ensemble, pca_limit = 1, hidden_layers_nodes = [10, 10])
+    network.create_network_from_ensemble(symm_funcs, ensemble, pca_limit = 2, hidden_layers_nodes = [10, 10])
 
     network.save_cfg("my_network.cfg")
 
-    
-    energy, force = network.get_energy( ensemble.get_configuration(0), compute_forces = True)
+    cfg = ATM.Atoms(3)
+    cfg.load_scf("../../GenerateNetwork/three_atoms.scf")
+    energy, force = network.get_energy( cfg, compute_forces = True)
 
     if verbose:
         print("My energy:", energy)
@@ -49,7 +52,7 @@ def test_energy_forces(verbose = False):
     NX = 10
 
 
-    cfg = ensemble.get_configuration(ID_CONFIG)
+
     coords, types, uc = cfg.get_coords_types_uc()
 
     energies = []
@@ -94,7 +97,9 @@ def test_single_eval(verbose = False):
 
     network = ANN.AtomicNetwork("my_network.cfg")
 
-    en, forc =  network.get_energy( ensemble.get_configuration(0), compute_forces = True)
+    cfg = ATM.Atoms(3)
+    cfg.load_scf("../../GenerateNetwork/three_atoms.scf")
+    en, forc =  network.get_energy( cfg, compute_forces = True, Nx = 1, Ny = 1, Nz = 1)
 
     if verbose:
         print ("ENERGY:", en)

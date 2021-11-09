@@ -269,7 +269,6 @@ double DG4_DX(double cutoff, double zeta, double eta, int lambda, int cutoff_typ
           rjk = (x0 - x2)*(x0 - x2) + (y0 - y2)*(y0 - y2) + (z0 - z2)*(z0 - z2);
           if (rjk > cutoff*cutoff) continue;
 
-          cout << "# NONZERO AHHAHAH" << endl;
           rjk = sqrt(rjk);
           d_rjk2_dx = 2 * ( coords[3*d_atm_index + d_coord_index] - coords[3*k + d_coord_index]);
           d_rjk_dx = d_rjk2_dx / (2 * rjk);
@@ -343,7 +342,6 @@ double DG4_DX(double cutoff, double zeta, double eta, int lambda, int cutoff_typ
       rjk = sqrt(rjk);
 
       if (rjk > cutoff) continue;
-      cout << "# NONZERO" << endl;
 
       // Get the angle
       cos_theta = (x1-x0)*(x2-x0) + (y1 - y0)*(y2 - y0) + (z1 - z0)*(z2 - z0);
@@ -446,7 +444,7 @@ void SymmetricFunctions::GetSymmetricFunctionsInput(const double * coords, const
 			   coords, atm_types, N_atoms, atom_index, j, k);
 	sym_values[N_types*N_G2 + index++] = value; 
 
-  cout << "# SYM INDEX (ATM: " << atom_index << "): " << index-1 << " TYPE 1: " << j << "  TYPE 2: " << k << "   IS  " << sym_values[N_types*N_G2 + index-1] << endl;
+  //cout << "# SYM INDEX (ATM: " << atom_index << "): " << index-1 << " TYPE 1: " << j << "  TYPE 2: " << k << "   IS  " << sym_values[N_types*N_G2 + index-1] << endl;
       }
       //counter_j += N_types - j;
     }
@@ -503,7 +501,7 @@ void SymmetricFunctions::GetDerivatives(Atoms * structure, int Nx, int Ny, int N
   int * atm_types = supercell->types;
 
   // For each atom in the current structure compute the symmetric functions
-  int n_sym = GetTotalNSym(structure->GetNTypes());
+  int n_sym = GetTotalNSym(N_types);
 
   int n_replicas = Nx * Ny * Nz;
 
@@ -555,17 +553,33 @@ void SymmetricFunctions::GetDerivatives(Atoms * structure, int Nx, int Ny, int N
       for (int i = 0; i < N_G4; ++i) {
         for (int j = 0; j < N_types; ++j) {
           for (int k = j; k < N_types; ++k) {
-      sym_diff[n_sym *atom_index + N_types*N_G2 + index++] +=
+            int total_index = n_sym *atom_index + N_types*N_G2 + index++;
+      sym_diff[total_index] +=
         DG4_DX(cutoff_radius, G4_ZETA.at(i), G4_ETA.at(i),
             G4_LAMBDA.at(i), cutoff_function_type,
             coords, atm_types, nat_sc, atom_index, j, k, d_atm_index_replica, d_cart_coord);
 
-            cout << "# DERIVATIVE: d_atm: " << d_atm_index_replica << " types: " << j << " " << k << "  value = " <<  sym_diff[n_sym *atom_index + N_types*N_G2 + index-1] << endl;
+            cout << "# DERIVATIVE: d_atm: " << d_atm_index_replica << " atm: " << atom_index << " types: " << j << " " << k << "  value = " <<  sym_diff[total_index] << " index: " << index -1 << " tot i: " << total_index<< endl;
           }
         }
       }
     }
   }
+
+  cout << "# DD:" << endl;
+  for (int atom_index = 0; atom_index < nat; ++ atom_index) {
+      int index = 0;
+      for (int i = 0; i < N_G4; ++i) {
+        for (int j = 0; j < N_types; ++j) {
+          for (int k = j; k < N_types; ++k) {
+            cout << "# DD atm: " << atom_index << " types: " << j << " " << k << " index = " << index << "  value = " <<  sym_diff[n_sym *atom_index + N_types*N_G2 + index++] << endl;
+          }
+        }
+      }
+  }
+
+
+
 
   //cout << "Excluded: " << excluded * 100./(float) nat << " \%  cutoff: " << cutoff_radius << " A" << endl;
 

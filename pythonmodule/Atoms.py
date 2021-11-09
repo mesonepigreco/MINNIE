@@ -21,6 +21,8 @@ class Atoms(object):
         """ 
         This class contains a system with atoms.
 
+        Eventually, if the first 
+
         Parameters
         ----------
             N_atoms : int 
@@ -30,13 +32,22 @@ class Atoms(object):
                 Avoid specifying this unless you really know what you are doing.
                 Otherwise it will cause a Segmentation Fault.
         """
+        self._atoms = None
+        self.N_atoms = 0
+
+
         self.N_atoms = N_atoms
         if atom_class is None:
             self._atoms = NNcpp.CreateAtomsClass(N_atoms)
         else:
             self._atoms = atom_class
             self.N_atoms = NNcpp.GetNAtoms(atom_class)
-    
+
+    def load_scf(self, filename):
+        if self._atoms is None:
+            raise ValueError("Error, to load a scf I must know how many atoms are there.\nIf you want to avoid this, consider load with CellConstructor and convert with the function set_from_cellconstructor.")
+        
+        NNcpp.LoadSCF(self._atoms, filename)
     
 
     def set_coords_types(self, coords, types, uc = None):
@@ -97,6 +108,13 @@ class Atoms(object):
         NNcpp.GetAtomsCoordsTypes(self._atoms, coords, types, uc)
 
         return coords, types, uc
+
+    def _print_coords(self):
+        """
+        A simple testing function to print on stdout the content of the _atoms variable
+        """
+
+        NNcpp.PrintAtoms(self._atoms)
 
     def get_cellconstructor(self, atom_label_dict):
         """
