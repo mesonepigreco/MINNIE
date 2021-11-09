@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 // A debugging flag
-#define AN_DEB 1
+#define AN_DEB 0
 #define TIME_GET_ENERGY 0
 #define ATOM_TEST_ID 0
 

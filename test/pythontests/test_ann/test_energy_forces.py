@@ -25,16 +25,16 @@ def test_energy_forces(verbose = False):
     symm_funcs.set_cutoff_radius(8) # 8 Angstrom cutoff
     symm_funcs.set_cutoff_function_type(1) # Flat derivative around the cutoff
     
-    #symm_funcs.add_g2_grid(r_min = 1.6, r_max = 6.5, N = 5)
-    symm_funcs.add_g4_grid(r_value = 3, N = 1)
+    symm_funcs.add_g2_grid(r_min = 1.6, r_max = 6.5, N = 5)
+    symm_funcs.add_g4_grid(r_value = 3, N = 6)
     print("TOTNSYM:", symm_funcs.get_number_of_g4)
 
     
     # Lets build an atomic neural network with this set of parameters
     network = ANN.AtomicNetwork()
-    network.create_network_from_ensemble(symm_funcs, ensemble, pca_limit = 2, hidden_layers_nodes = [10, 10])
+    network.create_network_from_ensemble(symm_funcs, ensemble, pca_limit = 10, hidden_layers_nodes = [10, 10])
 
-    network.save_cfg("my_network.cfg")
+    network.save_cfg("super_network")
 
     #cfg = ATM.Atoms(3)
     #cfg.load_scf("../../GenerateNetwork/three_atoms.scf")

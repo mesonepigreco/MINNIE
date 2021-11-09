@@ -49,6 +49,9 @@ PyObject * get_ensemble_config(PyObject * self, PyObject * args);
 PyObject * get_ensemble_ntyps(PyObject * self, PyObject * args);
 PyObject * get_n_atoms(PyObject * self, PyObject * args);
 PyObject * nn_get_energy(PyObject * self, PyObject * args);
+PyObject * nn_get_loss(PyObject * self, PyObject * args);
+PyObject * nn_get_ntypes(PyObject * self, PyObject * args);
+PyObject * nn_get_nbiases_nsynaptics(PyObject * self, PyObject * args);
 // Define the name for the capsules
 #define NAME_SYMFUNC "symmetry_functions"
 #define NAME_ANN "atomic_neural_networks"
@@ -88,6 +91,9 @@ static PyMethodDef Methods[] = {
     {"OvverrideEnsembleIndex", override_ensemble, METH_VARARGS, "Override the i-th structure of the ensemble."},
     {"CreateAtomicNN", create_atomic_network, METH_VARARGS, "Create a new Atomic NN from ensemble"},
     {"NN_GetEnergy", nn_get_energy, METH_VARARGS, "Get energies and forces from an Atomic NN."},
+    {"NN_GetLoss", nn_get_loss, METH_VARARGS, "Get the loss function of the ANN"},
+    {"NN_GetNTypes", nn_get_ntypes, METH_VARARGS, "Get the number of types"},
+    {"NN_GetNBiasesSynaptics", nn_get_nbiases_nsynaptics, METH_VARARGS, "Get the number of biases and synaptics in a network"},
     {NULL, NULL, 0, NULL}
 };
 
@@ -915,4 +921,76 @@ PyObject * nn_get_energy(PyObject * self, PyObject * args) {
     energy = ann->GetEnergy(atoms, forces, Nx, Ny, Nz);
 
     return Py_BuildValue("d", energy);
+}
+
+
+
+PyObject * nn_get_loss(PyObject * self, PyObject * args) {
+    PyObject * py_ann;
+    PyObject * py_ensemble;
+    PyArrayObject * py_biases, *py_synapsis;
+    int offset, ncfg;
+    double energy_weight, force_weight;
+    
+
+    if (!PyArg_ParseTuple(args, "OOddOOi", &py_ann, &py_ensemble, &energy_weight, &force_weight, &py_biases, &py_synapsis, &offset, &ncfg)) {
+        cerr << "Error, this function requires 7 arguments" << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    AtomicNetwork * ann = (AtomicNetwork*) PyCapsule_GetPointer(py_ann, NAME_ANN);
+    Ensemble * ens = (Ensemble*) PyCapsule_GetPointer(py_ensemble, NAME_ENSEMBLE);
+
+    double * grad_biases =  (double*) PyArray_DATA(py_biases);
+    double * grad_synapsis = (double*) PyArray_DATA(py_synapsis);
+
+    double ** all_grads_b = (double**) malloc(sizeof(double*) * ann->N_types);
+    double ** all_grads_s = (double**) malloc(sizeof(double*) * ann->N_types);
+    for (int i = 0; i < ann->N_types; ++i) {
+        all_grads_b[i] = grad_biases   + i * ann->GetNNFromElement(i)->get_nbiases();
+        all_grads_s[i] = grad_synapsis + i * ann->GetNNFromElement(i)->get_nsinapsis();
+    }
+
+
+    double loss = ann->GetLossGradient(ens, energy_weight, force_weight, all_grads_b, all_grads_s, offset, ncfg);
+
+    free(all_grads_b);
+    free(all_grads_s);
+
+    return Py_BuildValue("d", loss);
+}
+
+
+
+PyObject * nn_get_ntypes(PyObject * self, PyObject * args) {
+    PyObject * py_ann;
+    int ntyps;
+    
+
+    if (!PyArg_ParseTuple(args, "O", &py_ann)) {
+        cerr << "Error, this function requires 1 arguments" << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    AtomicNetwork * ann = (AtomicNetwork*) PyCapsule_GetPointer(py_ann, NAME_ANN);
+
+    return Py_BuildValue("i", ann->N_types);
+}
+
+PyObject * nn_get_nbiases_nsynaptics(PyObject * self, PyObject * args) {
+    PyObject * py_ann;
+    int ntyps;
+    
+
+    if (!PyArg_ParseTuple(args, "O", &py_ann)) {
+        cerr << "Error, this function requires 1 arguments" << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    AtomicNetwork * ann = (AtomicNetwork*) PyCapsule_GetPointer(py_ann, NAME_ANN);
+
+    return Py_BuildValue("ii",  ann->GetNNFromElement(0)->get_nbiases(),  ann->GetNNFromElement(0)->get_nsinapsis());
 }

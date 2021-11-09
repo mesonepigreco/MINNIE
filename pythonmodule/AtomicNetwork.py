@@ -130,5 +130,64 @@ class AtomicNetwork:
             return energy, forces 
         return energy
 
+    def get_n_types(self):
+        """
+        Get how many types are encoded in this atomic neural network.
+        """
+
+        return NNcpp.NN_GetNTypes(self._minnie)
+
+    def get_nbiases_nsynaptics(self):
+        """
+        Get how many biases and synaptics are inside the ANN
+        """
+        return NNcpp.NN_GetNBiasesSynaptics(self._minnie)
+
+
+    def get_loss_function(self, training_set, weight_energy = 1., weight_forces = 1., offset = 0, ncfg = -1):
+        """
+        GET THE LOSS FUNCTION
+        =====================
+
+        This method is meant for training the network: it computes the loss function on the given training set.
+
+        This method also returns the gradient of the biases and synapsis but only for the energy loss.
+
+        Parameters
+        ----------
+            training_set : Ensemble.Ensemble
+                The training set (or test set) to be employed to compute the loss function
+            weight_energy : float
+                The relative weight on the energy of the loss function
+            weight_forces : float
+                The relative weight of the forces.
+            offset : int
+                The first configuration of the ensemble. Usefull for batching
+            ncfg : int
+                The number of configuration to consider. If negative, take all
         
+        Returns
+        -------
+            loss : float
+                The loss function
+            grad_biases : ndarray( size = (n_types, n_biases), dtype = np.double)
+                The gradient of the biases for each atomic nn
+            grad_synapsis : ndarray( size = (n_types, n_synapsis), dtype = np.double)
+                The gradient of the synapsis.
+        """
+
+        if ncfg < 1:
+            ncfg = training_set.get_n_configs()
+
+        n_biases, n_synaptics = self.get_nbiases_nsynaptics()
+        n_types = self.get_n_types()
+
+        # Prepare the gradients
+        grad_biases = np.zeros( (n_types, n_biases), dtype = np.double, order = "C")
+        grad_synapsis = np.zeros( (n_types, n_synaptics), dtype = np.double, order = "C")
+
+        # Compute the Loss function and the gradients
+        loss = NNcpp.NN_GetLoss(self._minnie, ensemble._ensemble, weight_energy, weight_forces, grad_biases, grad_synapsis, offset, ncfg)
+
+        return loss, grad_biases, grad_synapsis        
 
