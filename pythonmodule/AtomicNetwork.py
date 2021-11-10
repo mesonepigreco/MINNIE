@@ -137,11 +137,64 @@ class AtomicNetwork:
 
         return NNcpp.NN_GetNTypes(self._minnie)
 
-    def get_nbiases_nsynaptics(self):
+    def get_nbiases_nsynapsis(self):
         """
         Get how many biases and synaptics are inside the ANN
         """
-        return NNcpp.NN_GetNBiasesSynaptics(self._minnie)
+        return NNcpp.NN_GetNBiasesSynapsis(self._minnie)
+
+
+    def get_biases_synapsis(self):
+        """
+        GET THE NN PARAMETERS
+        =====================
+
+        Get the biases and the synapsis of the Atomic neural networks
+
+        Results
+        -------
+            biases : ndarray( size = (n_types, n_biases))
+                For each atomic species, returns a vector containing all the biases.
+            synapsis : ndarray( size = (n_types, n_synapsis))
+                For each atomic species, returns a vector containing all the synapsis.
+        """
+
+        nbias, nsynaps = self.get_nbiases_nsynapsis()
+        n_types = self.get_n_types()
+
+        biases = np.zeros( (n_types, nbias), dtype = np.double, order = "C")
+        synapsis = np.zeros( (n_types, nsynaps), dtype = np.double, order = "C")
+
+        NNcpp.NN_GetBiasesSynapsis(self._minnie, biases, synapsis)
+        return biases, synapsis
+
+    def set_biases_synapsis(self, biases, synapsis):
+        """
+        SET THE NN PARAMETERS
+        =====================
+
+        Change the parameters of the neural network with those specified by Input.
+
+        Parameters
+        ----------
+            biases : ndarray( size = (n_types, n_biases), dtype = np.double, order = "C")
+                For each atomic species, returns a vector containing all the biases.
+            synapsis : ndarray( size = (n_types, n_synapsis), dtype = np.double, order = "C")
+                For each atomic species, returns a vector containing all the synapsis.
+        """
+
+        nbias, nsynaps = self.get_nbiases_nsynapsis()
+        n_types = self.get_n_types()
+
+        my_biases = np.zeros( (n_types, nbias), dtype = np.double, order = "C")
+        my_synapsis = np.zeros( (n_types, nsynaps), dtype = np.double, order = "C")
+
+        # Cast to the correct type/order to avoid reading wrongly the array in the NNcpp module
+        my_biases[:,:] = biases
+        my_synapsis[:,:] = synapsis
+
+        NNcpp.NN_SetBiasesSynapsis(self._minnie, my_biases, my_synapsis)
+
 
 
     def get_loss_function(self, training_set, weight_energy = 1., weight_forces = 1., offset = 0, ncfg = -1):
@@ -179,7 +232,7 @@ class AtomicNetwork:
         if ncfg < 1:
             ncfg = training_set.get_n_configs()
 
-        n_biases, n_synaptics = self.get_nbiases_nsynaptics()
+        n_biases, n_synaptics = self.get_nbiases_nsynapsis()
         n_types = self.get_n_types()
 
         # Prepare the gradients
@@ -187,7 +240,7 @@ class AtomicNetwork:
         grad_synapsis = np.zeros( (n_types, n_synaptics), dtype = np.double, order = "C")
 
         # Compute the Loss function and the gradients
-        loss = NNcpp.NN_GetLoss(self._minnie, ensemble._ensemble, weight_energy, weight_forces, grad_biases, grad_synapsis, offset, ncfg)
+        loss = NNcpp.NN_GetLoss(self._minnie, training_set._ensemble, weight_energy, weight_forces, grad_biases, grad_synapsis, offset, ncfg)
 
         return loss, grad_biases, grad_synapsis        
 

@@ -51,7 +51,9 @@ PyObject * get_n_atoms(PyObject * self, PyObject * args);
 PyObject * nn_get_energy(PyObject * self, PyObject * args);
 PyObject * nn_get_loss(PyObject * self, PyObject * args);
 PyObject * nn_get_ntypes(PyObject * self, PyObject * args);
-PyObject * nn_get_nbiases_nsynaptics(PyObject * self, PyObject * args);
+PyObject * nn_get_nbiases_nsynapsis(PyObject * self, PyObject * args);
+PyObject * nn_get_biases_synapsis(PyObject * self, PyObject * args);
+PyObject * nn_set_biases_synapsis(PyObject * self, PyObject * args);
 // Define the name for the capsules
 #define NAME_SYMFUNC "symmetry_functions"
 #define NAME_ANN "atomic_neural_networks"
@@ -93,7 +95,9 @@ static PyMethodDef Methods[] = {
     {"NN_GetEnergy", nn_get_energy, METH_VARARGS, "Get energies and forces from an Atomic NN."},
     {"NN_GetLoss", nn_get_loss, METH_VARARGS, "Get the loss function of the ANN"},
     {"NN_GetNTypes", nn_get_ntypes, METH_VARARGS, "Get the number of types"},
-    {"NN_GetNBiasesSynaptics", nn_get_nbiases_nsynaptics, METH_VARARGS, "Get the number of biases and synaptics in a network"},
+    {"NN_GetNBiasesSynapsis", nn_get_nbiases_nsynapsis, METH_VARARGS, "Get the number of biases and synaptics in a network"},
+    {"NN_GetBiasesSynapsis", nn_get_biases_synapsis, METH_VARARGS, "Get the biases and synaptics in all the atomic networks"},
+    {"NN_SetBiasesSynapsis", nn_set_biases_synapsis, METH_VARARGS, "Set the biases and synaptics in all the atomic networks"},
     {NULL, NULL, 0, NULL}
 };
 
@@ -198,9 +202,7 @@ static PyObject * add_g2_function(PyObject * self, PyObject * args) {
 
     // Retain the pointer to the symmetric function class
     SymmetricFunctions* sym_funcs = (SymmetricFunctions*) PyCapsule_GetPointer(symFuncs, NAME_SYMFUNC);
-    cout << "HERE INSIDE" << endl;
     sym_funcs->AddG2Function(rs, eta);
-    cout << "HERE INSIDE" << endl;
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -933,7 +935,7 @@ PyObject * nn_get_loss(PyObject * self, PyObject * args) {
     double energy_weight, force_weight;
     
 
-    if (!PyArg_ParseTuple(args, "OOddOOi", &py_ann, &py_ensemble, &energy_weight, &force_weight, &py_biases, &py_synapsis, &offset, &ncfg)) {
+    if (!PyArg_ParseTuple(args, "OOddOOii", &py_ann, &py_ensemble, &energy_weight, &force_weight, &py_biases, &py_synapsis, &offset, &ncfg)) {
         cerr << "Error, this function requires 7 arguments" << endl;
         cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
         return NULL;
@@ -979,7 +981,7 @@ PyObject * nn_get_ntypes(PyObject * self, PyObject * args) {
     return Py_BuildValue("i", ann->N_types);
 }
 
-PyObject * nn_get_nbiases_nsynaptics(PyObject * self, PyObject * args) {
+PyObject * nn_get_nbiases_nsynapsis(PyObject * self, PyObject * args) {
     PyObject * py_ann;
     int ntyps;
     
@@ -993,4 +995,67 @@ PyObject * nn_get_nbiases_nsynaptics(PyObject * self, PyObject * args) {
     AtomicNetwork * ann = (AtomicNetwork*) PyCapsule_GetPointer(py_ann, NAME_ANN);
 
     return Py_BuildValue("ii",  ann->GetNNFromElement(0)->get_nbiases(),  ann->GetNNFromElement(0)->get_nsinapsis());
+}
+
+PyObject * nn_get_biases_synapsis(PyObject * self, PyObject * args) {
+    PyObject * py_ann;
+    PyArrayObject * py_biases, *py_synapsis;
+    int n_biases, n_synapsis;
+    
+
+    if (!PyArg_ParseTuple(args, "OOO", &py_ann, &py_biases, &py_synapsis)) {
+        cerr << "Error, this function requires 1 arguments" << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    AtomicNetwork * ann = (AtomicNetwork*) PyCapsule_GetPointer(py_ann, NAME_ANN);
+    NeuralNetwork * network;
+
+    double * biases = (double*) PyArray_DATA(py_biases);
+    double * synapsis = (double*) PyArray_DATA(py_synapsis);
+    for (int i = 0; i < ann->N_types; ++i) {
+        network = ann->GetNNFromElement(i);
+        n_biases = network->get_nbiases();
+        n_synapsis =  network->get_nsinapsis();
+
+        for (int j = 0; j < n_biases; ++j) 
+            biases[n_biases * i + j] = network->get_biases_value(j);
+        for (int j = 0; j < n_synapsis; ++j)
+            synapsis[n_synapsis * i + j] = network->get_sinapsis_value(j);
+    }
+
+
+    return Py_BuildValue("");
+}
+
+PyObject * nn_set_biases_synapsis(PyObject * self, PyObject * args) {
+    PyObject * py_ann;
+    PyArrayObject * py_biases, *py_synapsis;
+    int n_biases, n_synapsis;
+    
+
+    if (!PyArg_ParseTuple(args, "OOO", &py_ann, &py_biases, &py_synapsis)) {
+        cerr << "Error, this function requires 1 arguments" << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    AtomicNetwork * ann = (AtomicNetwork*) PyCapsule_GetPointer(py_ann, NAME_ANN);
+    NeuralNetwork * network;
+
+    double * biases = (double*) PyArray_DATA(py_biases);
+    double * synapsis = (double*) PyArray_DATA(py_synapsis);
+    for (int i = 0; i < ann->N_types; ++i) {
+        network = ann->GetNNFromElement(i);
+        n_biases = network->get_nbiases();
+        n_synapsis =  network->get_nsinapsis();
+
+        for (int j = 0; j < n_biases; ++j) 
+            network->set_biases_value(j, biases[n_biases * i + j]);
+        for (int j = 0; j < n_synapsis; ++j)
+            network->set_sinapsis_value(j, synapsis[n_synapsis * i + j]);
+    }
+
+    return Py_BuildValue("");
 }

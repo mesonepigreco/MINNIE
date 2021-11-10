@@ -689,6 +689,11 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
 
 
     forces = new double[max_nat*3];
+
+    // Skip the calculation of forces if not needed.
+    double * forces_ptr = NULL;
+    if (weight_forces > 1e-6) forces_ptr = forces;
+
     for (int i = 0; i < n_conf; ++i) {
         // Get the current atomic configuration from the ensemble
         auto t1 = std::chrono::high_resolution_clock::now();
@@ -698,28 +703,36 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
         energy = training_set->GetEnergy(i);
         auto t3 = std::chrono::high_resolution_clock::now();
 
-        energy = GetEnergy(config, forces, training_set->N_x, training_set->N_y, training_set->N_z, grad_biases, grad_sinapsis, energy);
+        energy = GetEnergy(config, forces_ptr, training_set->N_x, training_set->N_y, training_set->N_z, grad_biases, grad_sinapsis, energy);
 
         auto t4 = std::chrono::high_resolution_clock::now();
         // Get the loss function
         loss += weight_energy *(energy - training_set->GetEnergy(i) )*(energy - training_set->GetEnergy(i)) / (config->GetNAtoms());
 
-        for (int j = 0; j < config->GetNAtoms() * 3; ++j) {
-            loss += weight_forces * (forces[j] - training_set->GetForce(i, j/3, j%3))* (forces[j] - training_set->GetForce(i, j/3, j%3))/ (config->GetNAtoms());
+        if (weight_forces > 1e-6) {
+            for (int j = 0; j < config->GetNAtoms() * 3; ++j) {
+                loss += weight_forces * (forces[j] - training_set->GetForce(i, j/3, j%3))* (forces[j] - training_set->GetForce(i, j/3, j%3))/ (config->GetNAtoms());
+            }
         }
         auto t5 = std::chrono::high_resolution_clock::now();
 
         getconf_ns +=  std::chrono::duration_cast<std::chrono::nanoseconds>(t2-t1).count();
         getenergyc_ns +=  std::chrono::duration_cast<std::chrono::nanoseconds>(t3-t2).count();
-        getenergynn_ns +=  std::chrono::duration_cast<std::chrono::nanoseconds>(t4-t3).count();
+        getenergynn_ns +=  std::chrono::duration_cast<std::chrono::milliseconds>(t4-t3).count();
         getloss_ns +=  std::chrono::duration_cast<std::chrono::nanoseconds>(t5-t4).count();
     }
 
     cout << "    [TIMING LOSS]" << endl;
     cout << "       Get configuration: " << fixed << getconf_ns / 1000000. << " ms" << endl;
     cout << "       Get energy of configuration: " << fixed << getenergyc_ns / 1000000. << " ms" << endl;
-    cout << "       Get energy of NN: " << fixed << getenergynn_ns / 1000000. << " ms" << endl;
+    cout << "       Get energy of NN: " << fixed << getenergynn_ns << " ms" << endl;
     cout << "       Compute the loss function: " << fixed << getloss_ns / 1000000. << " ms" << endl;
+
+    // Divide the gradient of biases and synapsis on the number of configurations
+    for (int i = 0; i < N_types; ++i) {
+        for (int j = 0; j < GetNNFromElement(i)->get_nbiases(); ++j) grad_biases[i][j] /= n_conf;
+        for (int j = 0; j < GetNNFromElement(i)->get_nsinapsis(); ++j) grad_sinapsis[i][j] /= n_conf;
+    }
 
     delete[] forces;
     return loss / n_conf;
