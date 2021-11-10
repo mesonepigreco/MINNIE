@@ -77,5 +77,39 @@ def test_loss(verbose = False):
     
     assert np.max(np.abs(other_ff[1:-1] - ff[1:-1])) / np.mean(np.abs(ff)) < 1e-4, np.abs(other_ff[1:-1] - ff[1:-1]) / np.mean(np.abs(ff))
 
+
+def test_train(verbose = False):
+    total_path = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(total_path)
+
+    ENSEMBLE_LOC = "../../ReadEnsemble/new_ensemble"
+
+    
+    ensemble = ENS.Ensemble()
+    ensemble.load_from_directory(ENSEMBLE_LOC,
+                                 n_configs = 100,
+                                 n_atoms = 40)
+
+    # Create the symmetric functions
+    symm_funcs = SF.SymmetricFunctions()
+    symm_funcs.set_cutoff_radius(8) # 8 Angstrom cutoff
+    symm_funcs.set_cutoff_function_type(1) # Flat derivative around the cutoff
+    
+    symm_funcs.add_g2_grid(r_min = 1.6, r_max = 6.5, N = 5)
+    symm_funcs.add_g4_grid(r_value = 3, N = 6)
+
+
+    # Create the network
+    network = ANN.AtomicNetwork()
+    network.create_network_from_ensemble(symm_funcs, ensemble, pca_limit = 10, hidden_layers_nodes = [10, 10])
+
+    network.train(ensemble, 100, verbose = verbose)
+
+    if verbose:
+        network.save_cfg("trained")
+    
+
 if __name__ == "__main__":
-    test_loss(True)    
+    test_train(True)
+    test_loss(True)
+    

@@ -3,6 +3,7 @@ from __future__ import division
 
 import numpy as np
 import minnie, minnie.SymmetricFunctions as SF
+import scipy, scipy.optimize
 
 import NNcpp
 
@@ -244,3 +245,70 @@ class AtomicNetwork:
 
         return loss, grad_biases, grad_synapsis        
 
+    def train(self, training_set, maxiters, weight_energy = 1., weight_forces = 0., tollerance = None, verbose = True, save_network = None, offset = 0, ncfg = -1):
+        """
+        TRAIN THE NETWORK
+        =================
+
+        Perform the training of the Neural network along the given training set.
+
+        If weight_forces is chose, then a Nelder-Mead algorithm is employed, otherwise a BFGS minimization.
+
+        Parameters
+        ----------
+            training_set : Ensemble.Ensemble
+                The set of configurations on which to perform the training
+            maxiters : int
+                The maximum number of iterations during the minimization.
+            weight_energy : float
+                The weight on the energy in the training. 
+                Energy computation is much faster than forces and also provides the gradient of biases and synapsis, 
+                so if only this is different from zero, the training is faster.
+            weight_forces : float
+                If different from zero, the forces are employed on the training. 
+                This slows down the training procedure by a lot, however, a much better training is achieved with the same size of the ensemble.
+            tollerance : float
+                The tollerance for the convergence of the algorithm. If none use the default value
+            verbose : bool
+                If true, print progress during the minimization
+            offset : int
+                The starting configuration of the ensemble. Use it for shuffle the batches.
+            ncfg : int
+                The number of configuration extracted from the training set. If negative, it is the total number of configurations of the Training Set.
+        """
+
+        method = "bfgs"
+        jac = True
+        if weight_forces > 1e-6:
+            method = "Nelder-Mead"
+            jac = False
+
+        n_biases, n_synapsis = self.get_nbiases_nsynapsis()
+        n_types = self.get_n_types()
+
+        len_bias = n_biases * n_types
+        len_synapsis = n_synapsis * n_types
+
+        # Define the function to be passed to the minimizer
+        def func(x):
+            biases = x[:len_bias].reshape((n_types, n_biases))
+            synapsis = x[len_bias:].reshape((n_types, n_synapsis))
+
+            self.set_biases_synapsis(biases, synapsis)
+            loss, grad_biases, grad_synapsis = self.get_loss_function(training_set, weight_energy, weight_forces, offset, ncfg)
+
+            if verbose:
+                print("Current loss: ", loss)
+
+            if jac:
+                dx = np.concatenate( (grad_biases.ravel(), grad_synapsis.ravel()))
+                return loss, dx 
+            return loss
+
+        biases, synapsis = self.get_biases_synapsis()
+        x0 = np.concatenate( (biases.ravel(), synapsis.ravel()))
+        res = scipy.optimize.minimize(func, x0 = x0, jac = jac, method = method, options = {"maxiter" : maxiters, "disp" : verbose})
+        
+        biases = res.x[:len_bias].reshape((n_types, n_biases))
+        synapsis = res.x[len_bias:].reshape((n_types, n_synapsis))
+        self.set_biases_synapsis(biases, synapsis)
