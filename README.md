@@ -23,3 +23,9 @@ To compile the C/C++ code you need:
 3. Python.h headers (`sudo apt install python-dev`)
 
 
+On ubuntu, the ingredients to compile the code can be installed with
+
+```
+sudo apt install libboost-all-dev libconfig++-dev libgsl-dev
+```
+
