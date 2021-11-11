@@ -486,6 +486,39 @@ void SymmetricFunctions::GetSymmetricFunctions(Atoms * structure, int Nx, int Ny
   delete supercell;
 }
 
+
+void SymmetricFunctions::GetSymmetricFunctionsATM(Atoms * structure, int Nx, int Ny, int Nz, double * sym_values, int atom_index, int N_types) {
+  Atoms * supercell;
+
+  // Prepare the supercell
+  structure->GenerateSupercell(Nx, Ny, Nz, supercell);
+
+  int nat_sc = supercell->GetNAtoms();
+  int nat = structure->GetNAtoms();
+
+  //cout << "# I have " << N_types << endl;
+  if (N_types < 0) N_types = structure->GetNTypes();
+  //cout << "# I have " << N_types << endl;
+/* 
+  cout << "UNIT CELL:" << endl;
+  for (int i = 0; i < 3; ++i) {
+    cout << structure->unit_cell[3*i] << "  " << structure->unit_cell[3*i + 1] << "  " <<  structure->unit_cell[3*i + 2] << endl;
+  }
+
+  // Print the supercell structure
+  cout << endl << "COORDS:" << endl;
+  for (int i = 0; i < nat_sc; ++i) {
+    cout << i << "   " << supercell->coords[3*i] << "  " << supercell->coords[3*i+1] << "   " << supercell->coords[3*i + 2] << endl;
+  } */
+
+
+  //cout << "# GET SYM OF ATOM "<< i << "  (TYPE: " << structure->types[i] <<  ")" << endl;
+  GetSymmetricFunctionsInput(supercell->coords, supercell->types, nat_sc, N_types, atom_index, sym_values);
+  
+  delete supercell;
+}
+
+
 void SymmetricFunctions::GetDerivatives(Atoms * structure, int Nx, int Ny, int Nz, int d_atm_index, int d_cart_coord, double * sym_diff, int N_types) {
   Atoms * supercell;
 

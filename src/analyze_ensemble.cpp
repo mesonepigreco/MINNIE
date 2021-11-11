@@ -360,7 +360,7 @@ void GetCovarianceSymmetry(Ensemble * ens, SymmetricFunctions* symmf, int Nx, in
 
 
                 // Get the mean square
-                for (int j = 0; j < N_sym_tot; ++j) {
+                for (int j = i; j < N_sym_tot; ++j) {
                     //cout << "j = " << j << " / " << N_sym_tot << "   cmat: " << N_sym_tot*i + j << " / " << N_sym_tot*N_sym_tot << endl;
 
                     cov_mat[N_sym_tot*i + j] += sym_values[i + N_sym_tot * h] * sym_values[j + N_sym_tot * h];
@@ -368,9 +368,15 @@ void GetCovarianceSymmetry(Ensemble * ens, SymmetricFunctions* symmf, int Nx, in
             }
         }
 
+
         delete[] sym_values;
     }
     cout << "Averages computed." << endl;
+
+    
+    for (int i = 0; i < N_sym_tot; ++i) 
+        for (int j = 0; j < i; ++j) 
+            cov_mat[N_sym_tot*i + j] = cov_mat[N_sym_tot*j + i];
 
     // Divide by the total number of atoms to get the real averages
     

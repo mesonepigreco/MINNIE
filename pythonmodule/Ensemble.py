@@ -117,6 +117,32 @@ class Ensemble:
             NNcpp.OvverrideEnsembleIndex(i, self._ensemble, atm, energy, force, stress)
             
     
+    def get_energy_forces(self, index):
+        """
+        GET ENERGY AND FORCES FOR THE GIVEN CONFIGURATION
+        =================================================
+
+        Get the energy and the forces for the index of the given configuration
+
+        Parameters
+        ----------
+            index : int
+                The index of the configuration.
+
+        Results
+        -------
+            energy : float
+                The value of the energy
+            forces : ndarray( size = (n_atoms, 3), dtype = np.double, order = "C")
+                The forces for each atom in the configuration
+        """
+
+        cfg = self.get_configuration(index)
+        forces = np.zeros( (cfg.N_atoms, 3), dtype = np.double, order = "C")
+
+        energy = NNcpp.Ensemble_GetEnergyForces(self._ensemble, forces, index, cfg.N_atoms)
+        return energy, forces
+
     def convert_from_sscha(self, sscha_ensemble):
         """
         Fill the ensemble using a sscha ensemble.

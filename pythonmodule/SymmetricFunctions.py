@@ -291,7 +291,7 @@ class SymmetricFunctions(object):
 
         NNcpp.SaveSymFuncToCFG(self._SymFunc, fname)
 
-    def get_symmetric_functions(self, atoms, Nx = 3, Ny = 3, Nz = 3):
+    def get_symmetric_functions(self, atoms, ntypes, Nx = 3, Ny = 3, Nz = 3):
         """
         GET SYMMETRIC FUNCTIONS
         =======================
@@ -302,6 +302,9 @@ class SymmetricFunctions(object):
         ----------
             atoms : minnie.Atoms.Atoms()
                 The atoms to which you want to compute the symmetric functions.
+            n_types : int
+                The number of types on which the symmetric functions are defined.
+                Could be bigger than the actual number of types in the given configurations.
             Nx, Ny, Nz : int
                 The supercell to be created in which to compute the symmetric functions
                 If you do not want periodic boundary conditions, use 1 for each value
@@ -311,8 +314,43 @@ class SymmetricFunctions(object):
             sym_funcs : ndarray( size = (N_atoms, N_syms), dtype = np.double)
                 The symmetric functions for each atoms of the system.
         """
+        n_syms = self.get_total_number_functions(ntypes)
+        nat = atoms.N_atoms
+        sym_funcs = np.zeros( (nat, n_syms), dtype = np.double, order = "C")
 
-        sym_funcs = NNcpp.GetSymmetricFunctions(self._SymFunc, atoms._atoms, Nx, Ny, Nz)
+        NNcpp.GetSymmetricFunctions(self._SymFunc, atoms._atoms, ntypes, Nx, Ny, Nz, sym_funcs)
+        return sym_funcs
+
+    def get_symmetric_functions_from_atom(self, atoms, index, ntypes, Nx = 3, Ny = 3, Nz = 3):
+        """
+        GET SYMMETRIC FUNCTIONS
+        =======================
+
+        Computes the symmetric functions for the given atoms class.
+
+        Parameters
+        ----------
+            atoms : minnie.Atoms.Atoms()
+                The atoms to which you want to compute the symmetric functions.
+            index : int
+                The index of the atom on which to compute the symmetric functions
+            n_types : int
+                The number of types on which the symmetric functions are defined.
+                Could be bigger than the actual number of types in the given configurations.
+            Nx, Ny, Nz : int
+                The supercell to be created in which to compute the symmetric functions
+                If you do not want periodic boundary conditions, use 1 for each value
+
+        Results
+        -------
+            sym_funcs : ndarray( size = (N_syms), dtype = np.double)
+                The symmetric functions for each atoms of the system.
+        """
+        n_syms = self.get_total_number_functions(ntypes)
+        nat = atoms.N_atoms
+        sym_funcs = np.zeros( n_syms, dtype = np.double, order = "C")
+
+        NNcpp.GetSymmetricFunctionsAtomIndex(self._SymFunc, atoms._atoms, index, ntypes, Nx, Ny, Nz, sym_funcs)
         return sym_funcs
 
     def pca_analysis(self, ensemble, Nx=3, Ny=3, Nz=3):
@@ -351,6 +389,108 @@ class SymmetricFunctions(object):
 
         NNcpp.GetCovarianceMatrix(ensemble._ensemble, self._SymFunc, Nx, Ny, Nz, means, cvar_mat)
         return means, cvar_mat
+
+    def check_data_consistency(self, ensemble, n_samples, cvar_mat = None, n_lim = None):
+        """
+        STUDY THE CONSISTENCY OF THE SYMMETRIC FUNCTIONS
+        ================================================
+
+        This method compares couple of atoms in the ensemble, 
+        computes the set of symmetric functions for both,
+        and compare the difference between forces and symmetric functions.
+
+        It return a data array of two colums of size n_samples. 
+        The first column contains the difference in the symmetric functions
+        the second column contains the difference in the force vectors.
+
+        If the set of symmetric function chosen is consistent, then
+        there should be no points with different forces but almost equal symmetric functions.
+        This can be checked plotting a scatter plot of the data, 
+        and no points should place in the upper left triangle (at low values).
+
+        Atoms are selected stochastically from the configurations
+
+        Parameters
+        ----------
+            ensemble : Ensemble.Ensemble
+                The ensemble on which the test must be computed.
+            n_samples : int
+                The number of data points to sample
+            cvar_mat : ndarray
+                Output of the pca_analysis. 
+                If given, only the first n_lim PCA components of the symmetric functions are considered.
+                This is usefull to reproduce the behaviour of the system.
+            n_lim : int
+                If given, the PCA is performed on cvar_mat and only the first n_lim components
+                are taken for the symmetric function vector.
+
+
+        Results
+        -------
+            data : ndarray (size = (n_samples, 2), dtype = np.double)
+                The data of the consistency. 
+                First column contains the difference of the symmetric functions in a chosen couple of atoms
+                Second column contains the difference of the forces in a chosen couple of atoms.
+        """
+
+        data = np.zeros( (n_samples, 2), dtype = np.double)
+
+        n_types = ensemble.get_n_types()
+        n_syms = self.get_total_number_functions(n_types)
+
+        use_pca = False
+        if (cvar_mat is not None) and (n_lim is not None):
+            if n_lim > n_syms or n_lim <= 0:
+                raise ValueError("Error, n_lim must be within (0, {}], given {}".format(n_syms, n_lim))
+            
+            nx, ny = np.shape(cvar_mat)
+
+            if nx != ny:
+                raise ValueError("Error, cvar_mat must be a square matrix.")
+            if nx != n_syms:
+                raise ValueError("Error, cvar_mat dimension does not match the number of symmetric functions.\nUse the value obtained with pca_analysis on the same set of symmetric functions.")
+            
+
+            use_pca = True 
+            eigvals, eigvects = np.linalg.eigh(cvar_mat)
+
+            # Sort
+            argsort = np.argsort(eigvals)
+            eigvals = eigvals[argsort]
+            eigvects = eigvects[:, argsort]
+
+            # Exclude everyting beyond the highest n_lim eigenvalues
+            eigvals = eigvals[n_syms - n_lim:]
+            eigvects = eigvects[:, n_syms - n_lim:]
+
+            assert len(eigvals) == n_lim
+            
+
+        for i in range(n_samples):
+            random_cfg1 = np.random.randint(0, ensemble.get_n_configs())
+            random_cfg2 = np.random.randint(0, ensemble.get_n_configs())
+
+            cfg1 = ensemble.get_configuration(random_cfg1)
+            cfg2 = ensemble.get_configuration(random_cfg2)
+
+            random_index1 = np.random.randint(0, cfg1.N_atoms)
+            random_index2 = np.random.randint(0, cfg2.N_atoms)
+
+            sym_funcs1 = self.get_symmetric_functions_from_atom(cfg1, random_index1, n_types)
+            sym_funcs2 = self.get_symmetric_functions_from_atom(cfg2, random_index2, n_types)
+
+            if use_pca:
+                sym_funcs1 = np.einsum("a, ab, b", sym_funcs1, eigvects, 1 / np.sqrt(eigvals))
+                sym_funcs2 = np.einsum("a, ab, b", sym_funcs2, eigvects, 1 / np.sqrt(eigvals))
+
+            _, force1 = ensemble.get_energy_forces(random_cfg1)
+            _, force2 = ensemble.get_energy_forces(random_cfg2)
+
+            data[i, 0] = np.linalg.norm( sym_funcs1 - sym_funcs2)
+            data[i, 1] = np.linalg.norm( force1[random_index1,:] - force2[random_index2,:])
+
+        return data
+
 
 
 def covariance_to_correlation(cvar_mat):

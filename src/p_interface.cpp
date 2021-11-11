@@ -34,6 +34,7 @@ PyObject * construct_ensemble(PyObject* self, PyObject * args);
 PyObject * set_atoms_coords_type(PyObject * self, PyObject * args);
 PyObject * get_atoms_coords_type(PyObject * self, PyObject * args);
 PyObject * get_symmetric_functions_from_atoms(PyObject * self, PyObject * args);
+PyObject * get_symmetric_functions_from_atoms_index(PyObject * self, PyObject * args);
 PyObject * get_symmetric_functions_parameters(PyObject * self, PyObject * args);
 PyObject * set_symmetric_functions_parameters(PyObject * self, PyObject * args);
 PyObject * set_cutoff(PyObject * self, PyObject * args);
@@ -54,6 +55,7 @@ PyObject * nn_get_ntypes(PyObject * self, PyObject * args);
 PyObject * nn_get_nbiases_nsynapsis(PyObject * self, PyObject * args);
 PyObject * nn_get_biases_synapsis(PyObject * self, PyObject * args);
 PyObject * nn_set_biases_synapsis(PyObject * self, PyObject * args);
+PyObject * ensemble_get_energy_force(PyObject * self, PyObject * args);
 // Define the name for the capsules
 #define NAME_SYMFUNC "symmetry_functions"
 #define NAME_ANN "atomic_neural_networks"
@@ -77,6 +79,7 @@ static PyMethodDef Methods[] = {
     {"SetAtomsCoordsTypes", set_atoms_coords_type, METH_VARARGS, "Set from python the Atoms class attributes"},
     {"GetAtomsCoordsTypes", get_atoms_coords_type, METH_VARARGS, "Get the coords and types of the atom"},
     {"GetSymmetricFunctions", get_symmetric_functions_from_atoms, METH_VARARGS, "Get the symmetric functions for the atoms class"},
+    {"GetSymmetricFunctionsAtomIndex", get_symmetric_functions_from_atoms_index, METH_VARARGS, "Get the symmetric functions for the atoms class"},
     {"GetCovarianceMatrix", get_covariance_matrix, METH_VARARGS, "Get the covariance matrix of symmetric functions on ensemble"},
     {"GetSymmetricFunctionParameters", get_symmetric_functions_parameters, METH_VARARGS, "Get the parameters of the symmetric function."},
     {"SetSymmetricFunctionParameters", set_symmetric_functions_parameters, METH_VARARGS, "Set the parameters of the symmetric function."},
@@ -98,6 +101,7 @@ static PyMethodDef Methods[] = {
     {"NN_GetNBiasesSynapsis", nn_get_nbiases_nsynapsis, METH_VARARGS, "Get the number of biases and synaptics in a network"},
     {"NN_GetBiasesSynapsis", nn_get_biases_synapsis, METH_VARARGS, "Get the biases and synaptics in all the atomic networks"},
     {"NN_SetBiasesSynapsis", nn_set_biases_synapsis, METH_VARARGS, "Set the biases and synaptics in all the atomic networks"},
+    {"Ensemble_GetEnergyForces", ensemble_get_energy_force, METH_VARARGS, "Get the energy and forces for a configuration of the ensemble"},
     {NULL, NULL, 0, NULL}
 };
 
@@ -526,12 +530,13 @@ PyObject * get_n_atoms(PyObject * self, PyObject * args) {
 
 PyObject* get_symmetric_functions_from_atoms(PyObject * self, PyObject * args) {
     PyObject * symf, *atm;
+    PyArrayObject * py_output;
     int N_atoms;
-    int N_syms;
+    int N_syms, n_types;
     int Nx, Ny, Nz; // The periodic images of the atoms
 
     // Parse the python arguments
-    if (!PyArg_ParseTuple(args, "OOiii", &symf, &atm, &Nx, &Ny, &Nz)) {
+    if (!PyArg_ParseTuple(args, "OOiiiiO", &symf, &atm, &n_types, &Nx, &Ny, &Nz, &py_output)) {
         cerr << "Error, this function requires 5 arguments" << endl;
         cerr << "Error on file " << __FILE__ << " at line " << __LINE__ << endl;
         return NULL;
@@ -540,21 +545,46 @@ PyObject* get_symmetric_functions_from_atoms(PyObject * self, PyObject * args) {
     // Get the correct C++ data types
     SymmetricFunctions* symm_func = (SymmetricFunctions*) PyCapsule_GetPointer(symf, NAME_SYMFUNC);
     Atoms * atoms = (Atoms*) PyCapsule_GetPointer(atm, NAME_ATOMS);
-
     N_atoms = atoms->GetNAtoms();
-    N_syms = symm_func->GetTotalNSym(atoms->GetNTypes());
+    N_syms = symm_func->GetTotalNSym(n_types);
 
     // Allocate the symmfunction arrays
-    double * sym_coords = new double[N_atoms * N_syms];
+    double * sym_coords = (double*) PyArray_DATA(py_output);
 
     // Calculate the symmetric coordinates
-    symm_func->GetSymmetricFunctions(atoms, Nx, Ny, Nz, sym_coords);
+    symm_func->GetSymmetricFunctions(atoms, Nx, Ny, Nz, sym_coords, n_types);
 
-    // Generate the output numpy array
-    npy_intp symfunc_dims[2] = {N_atoms, N_syms};
-    PyObject* output_array = PyArray_SimpleNewFromData(2, symfunc_dims, NPY_DOUBLE, (void*) sym_coords);
+    return Py_BuildValue("");
+}
 
-    return Py_BuildValue("O", output_array);
+PyObject* get_symmetric_functions_from_atoms_index(PyObject * self, PyObject * args) {
+    PyObject * symf, *atm;
+    PyArrayObject * py_output;
+    int N_atoms;
+    int index;
+    int N_syms, n_types;
+    int Nx, Ny, Nz; // The periodic images of the atoms
+
+    // Parse the python arguments
+    if (!PyArg_ParseTuple(args, "OOiiiiiO", &symf, &atm, &index, &n_types, &Nx, &Ny, &Nz, &py_output)) {
+        cerr << "Error, this function requires 5 arguments" << endl;
+        cerr << "Error on file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    // Get the correct C++ data types
+    SymmetricFunctions* symm_func = (SymmetricFunctions*) PyCapsule_GetPointer(symf, NAME_SYMFUNC);
+    Atoms * atoms = (Atoms*) PyCapsule_GetPointer(atm, NAME_ATOMS);
+    N_atoms = atoms->GetNAtoms();
+    N_syms = symm_func->GetTotalNSym(n_types);
+
+    // Allocate the symmfunction arrays
+    double * sym_coords = (double*) PyArray_DATA(py_output);
+
+    // Calculate the symmetric coordinates
+    symm_func->GetSymmetricFunctionsATM(atoms, Nx, Ny, Nz, sym_coords, index, n_types);
+
+    return Py_BuildValue("");
 }
 
 
@@ -1058,4 +1088,32 @@ PyObject * nn_set_biases_synapsis(PyObject * self, PyObject * args) {
     }
 
     return Py_BuildValue("");
+}
+
+
+
+PyObject * ensemble_get_energy_force(PyObject * self, PyObject * args) {
+    PyObject * py_ens;
+    PyArrayObject *py_forces;
+    int index;
+    int nat;
+    double energy;
+
+    if (!PyArg_ParseTuple(args, "OOii", &py_ens, &py_forces, &index, &nat)) {
+        cerr << "Error, this function requires 1 arguments" << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    Ensemble * ens = (Ensemble*) PyCapsule_GetPointer(py_ens, NAME_ENSEMBLE);
+
+    double * force = (double*) PyArray_DATA(py_forces);
+    energy = ens->GetEnergy(index);
+
+    for (int i =0; i < nat; ++ i) 
+        for (int x =0; x < 3; ++x)
+            force[3*i + x] = ens->GetForce(index, i, x);
+
+
+    return Py_BuildValue("d", energy);
 }

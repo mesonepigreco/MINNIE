@@ -129,7 +129,7 @@ class Atoms(object):
                 A dictionary that has for keys each ID of the atomic type and the corresponding value 
                 is the periodic table symbol.
 
-        Results
+        Resultsself.get_total_number_functions
         -------
             struct : cellconstructor.Structure.Structure
                 The structure of cellconstructor
