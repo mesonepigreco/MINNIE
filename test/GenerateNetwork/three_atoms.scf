@@ -1,0 +1,9 @@
+CELL_PARAMETERS angstrom
+3.0  0.0  0.0
+0.0  3.0  0.0
+0.0  0.0  3.0
+
+ATOMIC_POSITIONS angstrom
+Cs  0.0   0.0    0.0
+Sn  1.5   1.5    1.5
+Sn  1.5   1.5    0.0

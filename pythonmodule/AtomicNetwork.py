@@ -312,3 +312,4 @@ class AtomicNetwork:
         biases = res.x[:len_bias].reshape((n_types, n_biases))
         synapsis = res.x[len_bias:].reshape((n_types, n_synapsis))
         self.set_biases_synapsis(biases, synapsis)
+
