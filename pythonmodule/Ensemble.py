@@ -173,5 +173,15 @@ class Ensemble:
         """
         return [self.get_configuration(i) for i in range( self.get_n_configs())]
 
+    def shuffle(self):
+        """
+        RANDOM SHUFFLE
+        ==============
+
+        Random shuffle the order of the configurations inside the ensemble. 
+        Usefull for the bootstrap procedure.
+        """
+
+        NNcpp.Ensemble_Shuffle(self._ensemble)
 
         
