@@ -103,7 +103,7 @@ def test_train(verbose = False):
     network = ANN.AtomicNetwork()
     network.create_network_from_ensemble(symm_funcs, ensemble, pca_limit = 10, hidden_layers_nodes = [10, 10])
 
-    network.train(ensemble, 100, verbose = verbose)
+    network.train(ensemble, 5, verbose = verbose)
 
     if verbose:
         network.save_cfg("trained")

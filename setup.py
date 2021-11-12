@@ -4,15 +4,16 @@ The python setup to automatically compile the Neural Network source.
 
 from distutils.core import setup, Extension
 import os
+import numpy as np
 
 # Compiler flags
-CPP = "/usr/bin/g++"
+CPP = "g++"
 LIB_CONFIG = "config++"
 ALL_LIBS = [LIB_CONFIG, "gsl", "gslcblas", "boost_system", "boost_filesystem"]
-
+EXTRA_COMPILE_FLAGS = ["--std=c++11"]
 # Setup custom environments
 os.environ["CC"] = CPP
-os.environ["CXX"] = CPP
+#os.environ["CXX"] = CPP
 
 all_nnfiles = ["src/AtomicNetwork.cpp", 
                "src/analyze_ensemble.cpp",
@@ -28,7 +29,9 @@ all_nnfiles = ["src/AtomicNetwork.cpp",
 print("List of sources:")
 print(all_nnfiles)
 NNcpp = Extension("NNcpp", all_nnfiles, 
-                  libraries = ALL_LIBS)
+                  libraries = ALL_LIBS,
+                  include_dirs = [np.get_include()],
+                  extra_compile_args = EXTRA_COMPILE_FLAGS)
 
 
 setup(name = 'minnie', version = '0.01a', 
