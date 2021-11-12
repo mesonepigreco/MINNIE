@@ -367,3 +367,34 @@ double Ensemble::GetEnergy(int config_id) {
     }
     return energies.at(config_id);
 }
+
+
+void Ensemble::Shuffle(void) {
+    std::vector<int> indexes;
+
+    indexes.reserve(N_configs);
+    for (int i = 0; i < N_configs; ++i)
+        indexes.push_back(i);
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(indexes.begin(), indexes.end(), g);
+
+
+    // for all elements to put in place
+    for( int i = 0; i < N_configs- 1; ++i )
+    { 
+        // while the element i is not yet in place 
+        while( i != indexes[i] )
+        {
+            // swap it with the element at its final place
+            int alt = indexes[i];
+            swap( ensemble[i], ensemble[alt] );
+            swap( energies[i], energies[alt] );
+            swap( forces[i], forces[alt] );
+            swap( stresses[i], stresses[alt] );
+            swap( indexes[i], indexes[alt] );
+        }
+    }
+    
+}

@@ -9,6 +9,9 @@
 #define ENSEMBLE_HEADER
 
 #include <string>
+#include <cstdlib>
+#include <random>
+#include <algorithm>
 #include "atoms.hpp"
 #include "symmetric_functions.hpp"
 #include <libconfig.h++>
@@ -90,6 +93,9 @@ public:
     int GetNConfigs(void);
     int GetMaxNAtoms(void); // Get the maximum number of atoms inside the ensemble
     int GetNTyp(void); // Get the total number of atomic species
+
+    // Shuffle the configurations to perform the stochastic gradient
+    void Shuffle(void);
 
     // Get the atoms configuration at a given index
     // config is a pointer to the configuration that will be setted to point to the desidered Atoms object.

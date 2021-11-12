@@ -56,6 +56,7 @@ PyObject * nn_get_nbiases_nsynapsis(PyObject * self, PyObject * args);
 PyObject * nn_get_biases_synapsis(PyObject * self, PyObject * args);
 PyObject * nn_set_biases_synapsis(PyObject * self, PyObject * args);
 PyObject * ensemble_get_energy_force(PyObject * self, PyObject * args);
+PyObject * ensemble_shuffle(PyObject * self, PyObject * args);
 // Define the name for the capsules
 #define NAME_SYMFUNC "symmetry_functions"
 #define NAME_ANN "atomic_neural_networks"
@@ -102,6 +103,7 @@ static PyMethodDef Methods[] = {
     {"NN_GetBiasesSynapsis", nn_get_biases_synapsis, METH_VARARGS, "Get the biases and synaptics in all the atomic networks"},
     {"NN_SetBiasesSynapsis", nn_set_biases_synapsis, METH_VARARGS, "Set the biases and synaptics in all the atomic networks"},
     {"Ensemble_GetEnergyForces", ensemble_get_energy_force, METH_VARARGS, "Get the energy and forces for a configuration of the ensemble"},
+    {"Ensemble_Shuffle", ensemble_shuffle, METH_VARARGS, "Get the energy and forces for a configuration of the ensemble"},
     {NULL, NULL, 0, NULL}
 };
 
@@ -1116,4 +1118,20 @@ PyObject * ensemble_get_energy_force(PyObject * self, PyObject * args) {
 
 
     return Py_BuildValue("d", energy);
+}
+
+
+PyObject * ensemble_shuffle(PyObject * self, PyObject * args) {
+    PyObject * py_ens;
+
+    if (!PyArg_ParseTuple(args, "O", &py_ens)) {
+        cerr << "Error, this function requires 1 arguments" << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    Ensemble * ens = (Ensemble*) PyCapsule_GetPointer(py_ens, NAME_ENSEMBLE);
+    ens->Shuffle();
+
+    return Py_BuildValue("");
 }
