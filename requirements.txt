@@ -1,0 +1,3 @@
+# This are the pyhton packages required to run MINNIE
+numpy
+scipy
