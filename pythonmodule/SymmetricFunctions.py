@@ -390,7 +390,7 @@ class SymmetricFunctions(object):
         NNcpp.GetCovarianceMatrix(ensemble._ensemble, self._SymFunc, Nx, Ny, Nz, means, cvar_mat)
         return means, cvar_mat
 
-    def check_data_consistency(self, ensemble, n_samples, cvar_mat = None, n_lim = None):
+    def check_data_consistency(self, ensemble, n_samples, cvar_mat = None, n_lim = None, thr = 1e-10):
         """
         STUDY THE CONSISTENCY OF THE SYMMETRIC FUNCTIONS
         ================================================
@@ -421,8 +421,12 @@ class SymmetricFunctions(object):
                 If given, only the first n_lim PCA components of the symmetric functions are considered.
                 This is usefull to reproduce the behaviour of the system.
             n_lim : int
-                If given, the PCA is performed on cvar_mat and only the first n_lim components
+                The PCA is performed on cvar_mat and only the first n_lim components
                 are taken for the symmetric function vector.
+                If None, it is setted equal to the maximum allowed.
+            thr : float
+                If the eigenvalue associated to a peculiar symmetric function is lower than the threshold,
+                then it is discarded.
 
 
         Results
@@ -439,7 +443,9 @@ class SymmetricFunctions(object):
         n_syms = self.get_total_number_functions(n_types)
 
         use_pca = False
-        if (cvar_mat is not None) and (n_lim is not None):
+        if (cvar_mat is not None):
+            if n_lim is None:
+                n_lim = n_syms
             if n_lim > n_syms or n_lim <= 0:
                 raise ValueError("Error, n_lim must be within (0, {}], given {}".format(n_syms, n_lim))
             
@@ -459,9 +465,18 @@ class SymmetricFunctions(object):
             eigvals = eigvals[argsort]
             eigvects = eigvects[:, argsort]
 
+            # Get only the limits
+            good_mask = eigvals > thr 
+            eigvals = eigvals[good_mask]
+            eigvects = eigvects[:, good_mask]
+            new_nsym = len(eigvals)
+
             # Exclude everyting beyond the highest n_lim eigenvalues
-            eigvals = eigvals[n_syms - n_lim:]
-            eigvects = eigvects[:, n_syms - n_lim:]
+            if new_nsym > n_lim:
+                eigvals = eigvals[new_nsym - n_lim:]
+                eigvects = eigvects[:, new_nsym - n_lim:]
+            else:
+                n_lim = new_nsym
 
             assert len(eigvals) == n_lim
             
