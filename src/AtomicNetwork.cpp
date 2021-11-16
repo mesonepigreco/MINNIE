@@ -699,11 +699,16 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
     double * forces_ptr = NULL;
     if (weight_forces > 1e-6) forces_ptr = forces;
 
+    double ** tmp_grad_biases = (double**) malloc(sizeof(double*) * N_types);
+    double **tmp_grad_sinapsis = (double**) malloc(sizeof(double*) * N_types);
+
 
     // SET GRAD BIASES AND SINAPSIS TO ZERO
     for (int i = 0; i < N_types; ++i) {
-        for (int j = 0; j < GetNNFromElement(i)->get_nbiases(); ++j) grad_biases[i][j] = 0;
-        for (int j = 0; j < GetNNFromElement(i)->get_nsinapsis(); ++j) grad_sinapsis[i][j] = 0;
+        tmp_grad_biases[i] = new double[GetNNFromElement(i)->get_nbiases()];
+        tmp_grad_sinapsis[i] = new double[GetNNFromElement(i)->get_nsinapsis()];
+        for (int j = 0; j < GetNNFromElement(i)->get_nbiases(); ++j) tmp_grad_biases[i][j] = 0;
+        for (int j = 0; j < GetNNFromElement(i)->get_nsinapsis(); ++j) tmp_grad_sinapsis[i][j] = 0;
     }
 
     int size = 1, rank = 0;
@@ -728,6 +733,8 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
 		stop = start + count;
 	}
 
+    //cout << "RANK " << rank << " from " << start << " to " << stop << endl;
+
     for (int i = start; i < stop; ++i) {
         // Get the current atomic configuration from the ensemble
         auto t1 = std::chrono::high_resolution_clock::now();
@@ -737,7 +744,7 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
         energy = training_set->GetEnergy(i);
         auto t3 = std::chrono::high_resolution_clock::now();
 
-        energy = GetEnergy(config, forces_ptr, training_set->N_x, training_set->N_y, training_set->N_z, grad_biases, grad_sinapsis, energy);
+        energy = GetEnergy(config, forces_ptr, training_set->N_x, training_set->N_y, training_set->N_z, tmp_grad_biases, tmp_grad_sinapsis, energy);
 
         auto t4 = std::chrono::high_resolution_clock::now();
         // Get the loss function
@@ -755,16 +762,21 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
         getenergynn_ns +=  std::chrono::duration_cast<std::chrono::milliseconds>(t4-t3).count();
         getloss_ns +=  std::chrono::duration_cast<std::chrono::nanoseconds>(t5-t4).count();
     }
+    //cout << "RANK " << rank << " partial loss " << partial_loss<< endl;
 
 
 	// Sum back the computation from different processors
 	#ifdef _MPI 
 	MPI_Allreduce(&partial_loss, &loss, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     for (int i = 0; i < N_types; ++i) {
-        MPI_Allreduce(grad_biases[i], grad_biases[i], GetNNFromElement(i)->get_nbiases(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(grad_sinapsis[i], grad_sinapsis[i], GetNNFromElement(i)->get_nsinapsis(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(tmp_grad_biases[i], grad_biases[i], GetNNFromElement(i)->get_nbiases(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(tmp_grad_sinapsis[i], grad_sinapsis[i], GetNNFromElement(i)->get_nsinapsis(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     }
     #else
+    for (int i = 0; i < N_types; ++i) {
+        for (int j = 0; j < GetNNFromElement(i)->get_nbiases(); ++j) grad_biases[i][j] = tmp_grad_biases[i][j];
+        for (int j = 0; j < GetNNFromElement(i)->get_nsinapsis(); ++j) grad_sinapsis[i][j] = tmp_grad_sinapsis[i][j];
+    }
     loss = partial_loss;
 	#endif 
 

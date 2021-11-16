@@ -1,9 +1,8 @@
 import NNcpp
 
-
-# Initialize MPI
-NNcpp.MPI_init()
-
+# Perform the MPI initialization
+import mpi4py
+from mpi4py import MPI
 
 def am_i_the_master():
     rank, size = NNcpp.MPI_get_rank_size()

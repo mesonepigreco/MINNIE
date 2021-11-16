@@ -1161,8 +1161,6 @@ PyObject * mpi_get_rank_size(PyObject * self, PyObject * args) {
 
     int rank= 0, size = 1;
     #ifdef _MPI
-    if (! MPI_Initialized(NULL))
-        MPI_Init(NULL, NULL);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     #endif
