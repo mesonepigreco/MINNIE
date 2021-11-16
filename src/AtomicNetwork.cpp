@@ -59,6 +59,8 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
     // Get the symmetric functions
     //cout << "Getting symmetric functions..." << endl;
     symm_f->GetSymmetricFunctions(coords, Nx, Ny, Nz, symm_fynctions, sym_activated, N_types);
+
+
     //cout << "Symmetric functions obtained." << endl;
 
     int time_pca = 0, time_nnfeatures = 0, time_forces = 0;
@@ -73,6 +75,12 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
                 printf("# SYM F [%d] of atom %d is : %.8e\n", k, i, symm_fynctions[N_sym*i + k]);
         }
         auto t1 = std::chrono::high_resolution_clock::now();
+
+        // Fill all the deactivated symmetries with their average value
+        for (int j = 0; j < N_sym; ++j) {
+            if (sym_activated[i]) continue;
+            symm_fynctions[N_sym * i + j] = average_symfuncs[j];
+        }
 
 
         // Apply the PCA representation
@@ -312,6 +320,12 @@ void AtomicNetwork::SaveCFG(const char * PREFIX) {
         cfg_active.add(Setting::TypeBoolean) = sym_activated[i];
     }
 
+    Setting &cfg_sfa = PCA.add(AN_SYM_AVERAGE, Setting::TypeArray);
+    for (int i = 0; i < N_syms; ++i) {
+        cfg_sfa.add(Setting::TypeFloat) = average_symfuncs[i];
+    }
+    
+
 
     // Add the symmetry functions
     // Write to the file the main
@@ -416,7 +430,11 @@ void AtomicNetwork::LoadCFG(const char * PREFIX) {
     mean_vals = new double[N_lim];
 
     sym_activated = new bool[N_syms];
-    for (int i = 0; i < N_syms; ++i) sym_activated[i] = true;
+    average_symfuncs = new double[N_syms];
+    for (int i = 0; i < N_syms; ++i) {
+        sym_activated[i] = true;
+        average_symfuncs[i] = 0;
+    }
 
 
 
@@ -449,6 +467,21 @@ void AtomicNetwork::LoadCFG(const char * PREFIX) {
         const Setting& cfg_sym_active = pca[AN_SYM_ACTIVE];
         for (int i = 0; i < N_syms; ++i) {
             sym_activated[i] = (bool) cfg_sym_active[i];
+        }
+    } catch (const SettingNotFoundException &e) {
+        cerr << "WARNING, keyword " << e.getPath() << " not found" << endl; 
+        cerr << " Ignoring, probably the cfg file generated with an old version." << endl;
+    } catch (const SettingTypeException &e) {
+        cerr << "Error, keyword " << e.getPath() << " has wrong type" << endl;
+        throw;
+    } catch ( const SettingException &e) {
+        cerr << "Error with keyword " << e.getPath() << ". Please, check carefully" << endl;
+        throw;
+    }
+    try {
+        const Setting& cfg_symav = pca[AN_SYM_AVERAGE];
+        for (int i = 0; i < N_syms; ++i) {
+            average_symfuncs[i] = (bool) cfg_symav[i];
         }
     } catch (const SettingNotFoundException &e) {
         cerr << "WARNING, keyword " << e.getPath() << " not found" << endl; 
@@ -604,6 +637,10 @@ AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int 
     eigvals = new double[N_lim];
     eigvects = new double[N_lim * N_sym];
     mean_vals = new double[N_lim];
+    average_symfuncs = new double[N_sym];
+
+    for (int i =0; i < N_sym; ++i) average_symfuncs[i] = means[i];
+
 
     // Perform the PCA
     Diagonalize(cvar_mat, N_sym, tmp_eigvals, tmp_eigvects);

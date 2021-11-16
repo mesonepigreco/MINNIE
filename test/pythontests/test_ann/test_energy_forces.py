@@ -10,6 +10,44 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
+
+
+def test_reduce_syms(verbose = False):
+    total_path = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(total_path)
+    
+    ENSEMBLE_LOC = "../../ReadEnsemble/new_ensemble"
+
+    ensemble = ENS.Ensemble()
+    ensemble.load_from_directory(ENSEMBLE_LOC,
+                                 n_configs = 100,
+                                 n_atoms = 40)
+
+    symm_funcs = SF.SymmetricFunctions()
+    symm_funcs.set_cutoff_radius(8) # 8 Angstrom cutoff
+    symm_funcs.set_cutoff_function_type(1) # Flat derivative around the cutoff
+    
+    symm_funcs.add_g2_grid(r_min = 1.6, r_max = 6.5, N = 10)
+    symm_funcs.add_g4_grid(r_value = 3, N = 6)
+    print("TOTNSYM:", symm_funcs.get_number_of_g4)
+
+    mean, cvar = symm_funcs.pca_analysis(ensemble)
+
+    
+    # Lets build an atomic neural network with this set of parameters
+    network = ANN.AtomicNetwork()
+    network.create_network_from_ensemble(symm_funcs, ensemble, pca_limit = 10, hidden_layers_nodes = [10, 10])
+
+    en1 = network.get_energy(ensemble.get_configuration(0))
+    network.deactivate_symm_funcs(mean, cvar, verbose = verbose)
+    en2 = network.get_energy(ensemble.get_configuration(0))
+    assert np.abs(en1 - en2) < 1e-6, "EN1: {} | EN2: {}".format(en1, en2)
+
+    
+    
+
+    
+
 def test_energy_forces(verbose = False):
     total_path = os.path.dirname(os.path.abspath(__file__))
     os.chdir(total_path)
@@ -110,5 +148,7 @@ def test_single_eval(verbose = False):
     
 
 if __name__ == "__main__":
+    test_reduce_syms(True)
+    exit()
     test_energy_forces(True)
     test_single_eval(True)

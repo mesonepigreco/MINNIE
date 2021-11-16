@@ -59,6 +59,7 @@ PyObject * nn_get_ntypes(PyObject * self, PyObject * args);
 PyObject * nn_get_nbiases_nsynapsis(PyObject * self, PyObject * args);
 PyObject * nn_get_biases_synapsis(PyObject * self, PyObject * args);
 PyObject * nn_set_biases_synapsis(PyObject * self, PyObject * args);
+PyObject * nn_deactivate_symfunc(PyObject * self, PyObject * args);
 PyObject * ensemble_get_energy_force(PyObject * self, PyObject * args);
 PyObject * ensemble_shuffle(PyObject * self, PyObject * args);
 PyObject * mpi_init(PyObject * self, PyObject * args);
@@ -109,6 +110,7 @@ static PyMethodDef Methods[] = {
     {"NN_GetNBiasesSynapsis", nn_get_nbiases_nsynapsis, METH_VARARGS, "Get the number of biases and synaptics in a network"},
     {"NN_GetBiasesSynapsis", nn_get_biases_synapsis, METH_VARARGS, "Get the biases and synaptics in all the atomic networks"},
     {"NN_SetBiasesSynapsis", nn_set_biases_synapsis, METH_VARARGS, "Set the biases and synaptics in all the atomic networks"},
+    {"NN_DeactivateSymFuncs", nn_deactivate_symfunc, METH_VARARGS, "Deactivate some of the symmetric functions"},
     {"Ensemble_GetEnergyForces", ensemble_get_energy_force, METH_VARARGS, "Get the energy and forces for a configuration of the ensemble"},
     {"Ensemble_Shuffle", ensemble_shuffle, METH_VARARGS, "Get the energy and forces for a configuration of the ensemble"},
     {"MPI_init", mpi_init, METH_VARARGS, "Initialize the parallel environment"},
@@ -1112,6 +1114,30 @@ PyObject * nn_set_biases_synapsis(PyObject * self, PyObject * args) {
     return Py_BuildValue("");
 }
 
+
+PyObject * nn_deactivate_symfunc(PyObject * self, PyObject * args) {
+    PyObject * py_ann;
+    PyArrayObject * py_mask, *py_average;
+    int nsyms;
+    int * mask;
+
+    if (!PyArg_ParseTuple(args, "OOOi", &py_ann, &py_mask, &py_average, &nsyms)) {
+        cerr << "Error, this function requires 1 arguments" << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    AtomicNetwork * ann = (AtomicNetwork*) PyCapsule_GetPointer(py_ann, NAME_ANN);
+    mask = (int*) PyArray_DATA(py_mask);
+    double * av = (double*) PyArray_DATA(py_average);
+
+    for (int i = 0; i < nsyms; ++i) {
+        ann->sym_activated[i] = (bool) mask[i];
+        ann->average_symfuncs[i] = av[i];
+    }
+
+    return Py_BuildValue("");
+}
 
 
 PyObject * ensemble_get_energy_force(PyObject * self, PyObject * args) {

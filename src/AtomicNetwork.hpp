@@ -29,6 +29,7 @@
 #define AN_ENVIRON "AtomicNetwork"
 #define AN_TYPELIST "types"
 #define AN_SYM_ACTIVE "active_symfuncs"
+#define AN_SYM_AVERAGE "average_symfuncs"
 
 // The train methods
 #define AN_TRAINSD "sd"
@@ -51,11 +52,14 @@ private:
     vector<double> output_energy_mean, output_energy_sigma;
     int N_lim;
 
+
+
+
+public:    
+
     // Enable to deactivate some symmetric function to speedup calculation
     bool * sym_activated;
-
-
-public:
+    double * average_symfuncs;
 
     int N_types;
     vector<int> atomic_types;

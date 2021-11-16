@@ -104,6 +104,41 @@ class AtomicNetwork:
 
         
         NNcpp.SaveNNToCFG(self._minnie, filename)
+    
+    def deactivate_symm_funcs(self, means, cvar_mat, thr = 1e-6, verbose = False):
+        """
+        This functions deactivates the symmetric functions that display a variability of less than 10^-6.
+        By deactivating a symmetric function, the calculation of the loss function, training and energy
+        is speeded up.
+
+        Parameters
+        ----------
+            means : ndarray(size = nsym)
+                The average values of the symmetric functions (result of a pca_analysis of symmetric functions)
+            cvar_mat : ndarray(size = (nsym, nsym))
+                The covariance matrix, the result of the pca_analysis of the symmetric functions.
+            thr: float
+                The value of the fluctuations below which the symmetric function is turned of.
+                The condition to deactivate the i-th symmetric function is that
+                sqrt(cvar_mat[i,i]) < thr
+            verbose : bool
+                If true, prints the number of symmetric function turned off and their percentage
+        """
+
+        
+        nsym, _ = np.shape(cvar_mat)
+        assert nsym == _, "Error, cvar_mat must be a square matrix"
+
+        mask = np.zeros(nsym, dtype = np.intc)
+        mask[:] = np.sqrt(np.diag(cvar_mat)) > thr
+        new_means = np.zeros(nsym, dtype = np.double)
+        new_means[:] = means
+
+        if verbose:
+            nremoved = np.sum(mask)
+            print("Deactivated {} out of {} symmetry functions. Total removed is {} %".format(nremoved, nsym, nremoved * 100. / nsym))
+
+        NNcpp.NN_DeactivateSymFuncs(self._minnie, mask, new_means, nsym)
 
     def get_energy(self, atoms, compute_forces = False, Nx = 3, Ny = 3, Nz = 3):
         """
