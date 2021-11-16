@@ -4,6 +4,8 @@ from __future__ import division
 import NNcpp
 import numpy as np
 
+# Override the print function
+from minnie.Parallel import pprint as print
 """
 This file builds and create the Atoms class, wrapper of the C++ Atoms class
 """

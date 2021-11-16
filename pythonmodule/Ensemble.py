@@ -6,6 +6,8 @@ import numpy as np
 import minnie, minnie.Atoms as ATM
 import NNcpp
 
+# Override the print function
+from minnie.Parallel import pprint as print
 
 class Ensemble:
 

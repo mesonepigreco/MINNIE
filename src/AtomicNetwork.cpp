@@ -3,9 +3,14 @@
 #include <math.h>
 #include <chrono>
 #include <stdlib.h>
+#ifdef _MPI
+#include <mpi.h>
+#endif
+
 
 // A debugging flag
 #define AN_DEB 0
+#define TIME_LOSS 0
 #define TIME_GET_ENERGY 0
 #define ATOM_TEST_ID 0
 
@@ -675,7 +680,7 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
     } 
 
 
-    double loss = 0;
+    double loss = 0, partial_loss = 0;
     double energy = 0;
     double * forces = NULL;
     Atoms * config;
@@ -694,7 +699,36 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
     double * forces_ptr = NULL;
     if (weight_forces > 1e-6) forces_ptr = forces;
 
-    for (int i = 0; i < n_conf; ++i) {
+
+    // SET GRAD BIASES AND SINAPSIS TO ZERO
+    for (int i = 0; i < N_types; ++i) {
+        for (int j = 0; j < GetNNFromElement(i)->get_nbiases(); ++j) grad_biases[i][j] = 0;
+        for (int j = 0; j < GetNNFromElement(i)->get_nsinapsis(); ++j) grad_sinapsis[i][j] = 0;
+    }
+
+    int size = 1, rank = 0;
+	#ifdef _MPI
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	#endif
+    
+	// Get each pool of configurations over different processors (if MPI)
+	int count = n_configs / size;
+	int remainer = n_configs % size;
+    int start, stop;
+
+	// Distribute the remainers in a clever way
+	// To get the most efficient parallelization
+	// Dividing the remainers in the first remainer processors
+	if (rank < remainer) {
+		start = rank * (count + 1);
+		stop = start + count + 1;
+	} else {
+		start = rank * count + remainer;
+		stop = start + count;
+	}
+
+    for (int i = start; i < stop; ++i) {
         // Get the current atomic configuration from the ensemble
         auto t1 = std::chrono::high_resolution_clock::now();
         training_set->GetConfig(offset + i, config);
@@ -707,11 +741,11 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
 
         auto t4 = std::chrono::high_resolution_clock::now();
         // Get the loss function
-        loss += weight_energy *(energy - training_set->GetEnergy(i) )*(energy - training_set->GetEnergy(i)) / (config->GetNAtoms());
+        partial_loss += weight_energy *(energy - training_set->GetEnergy(i) )*(energy - training_set->GetEnergy(i)) / (config->GetNAtoms());
 
         if (weight_forces > 1e-6) {
             for (int j = 0; j < config->GetNAtoms() * 3; ++j) {
-                loss += weight_forces * (forces[j] - training_set->GetForce(i, j/3, j%3))* (forces[j] - training_set->GetForce(i, j/3, j%3))/ (config->GetNAtoms());
+                partial_loss += weight_forces * (forces[j] - training_set->GetForce(i, j/3, j%3))* (forces[j] - training_set->GetForce(i, j/3, j%3))/ (config->GetNAtoms());
             }
         }
         auto t5 = std::chrono::high_resolution_clock::now();
@@ -722,11 +756,25 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
         getloss_ns +=  std::chrono::duration_cast<std::chrono::nanoseconds>(t5-t4).count();
     }
 
-    cout << "    [TIMING LOSS]" << endl;
-    cout << "       Get configuration: " << fixed << getconf_ns / 1000000. << " ms" << endl;
-    cout << "       Get energy of configuration: " << fixed << getenergyc_ns / 1000000. << " ms" << endl;
-    cout << "       Get energy of NN: " << fixed << getenergynn_ns << " ms" << endl;
-    cout << "       Compute the loss function: " << fixed << getloss_ns / 1000000. << " ms" << endl;
+
+	// Sum back the computation from different processors
+	#ifdef _MPI 
+	MPI_Allreduce(&partial_loss, &loss, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    for (int i = 0; i < N_types; ++i) {
+        MPI_Allreduce(grad_biases[i], grad_biases[i], GetNNFromElement(i)->get_nbiases(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(grad_sinapsis[i], grad_sinapsis[i], GetNNFromElement(i)->get_nsinapsis(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    }
+    #else
+    loss = partial_loss;
+	#endif 
+
+    if (rank == 0 && TIME_LOSS) {
+        cout << "    [TIMING LOSS]" << endl;
+        cout << "       Get configuration: " << fixed << getconf_ns / 1000000. << " ms" << endl;
+        cout << "       Get energy of configuration: " << fixed << getenergyc_ns / 1000000. << " ms" << endl;
+        cout << "       Get energy of NN: " << fixed << getenergynn_ns << " ms" << endl;
+        cout << "       Compute the loss function: " << fixed << getloss_ns / 1000000. << " ms" << endl;
+    }
 
     // Divide the gradient of biases and synapsis on the number of configurations
     for (int i = 0; i < N_types; ++i) {
@@ -764,6 +812,7 @@ void AtomicNetwork::TrainNetwork(Ensemble * training_set, string method, double 
 
     double total_gradient = 0;
     double T_cooling = 1 - 1 / (double) N_steps;
+    
 
     // Check the minimization method
     if (method == AN_TRAINSD) {
