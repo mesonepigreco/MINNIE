@@ -31,7 +31,7 @@ using namespace libconfig;
 bool AnalyzeSymmetries(const char * config_file);
 
 void PrintSymmetricFunctions(string file_path, SymmetricFunctions * symf, Ensemble * ens,
-                            int Nx, int Ny, int Nz);
+                            int Nx, int Ny, int Nz, bool * active = NULL);
 
 
 /*
@@ -59,7 +59,7 @@ void PrintSymmetricFunctions(string file_path, SymmetricFunctions * symf, Ensemb
  *      cvar_mat : Array (size the total number of symmetric functions to the square)
  *          The covariance matrix between the symmetric functions. <si sj> - <si><sj>
  */
-void GetCovarianceSymmetry(Ensemble *, SymmetricFunctions*, int Nx, int Ny, int Nz, double * means, double * cvar_mat);
+void GetCovarianceSymmetry(Ensemble *, SymmetricFunctions*, int Nx, int Ny, int Nz, double * means, double * cvar_mat, bool * active = NULL);
 
 
 /*
@@ -78,5 +78,5 @@ void GetCovarianceSymmetry(Ensemble *, SymmetricFunctions*, int Nx, int Ny, int 
  *          The size of the supercell in which the symmetric functions are evaluated.
  * 
  */
-void AnalyzeForces(string anal_path, Ensemble * ensemble, SymmetricFunctions* symm_func, int Nx, int Ny, int Nz) ;
+void AnalyzeForces(string anal_path, Ensemble * ensemble, SymmetricFunctions* symm_func, int Nx, int Ny, int Nz, bool * active = NULL) ;
 #endif

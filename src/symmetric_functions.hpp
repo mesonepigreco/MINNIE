@@ -78,7 +78,7 @@ public:
    * the function GetTotalNSym()
    */
   void  GetSymmetricFunctionsInput(const double * coords, const int * atm_types, int N_atoms, int N_types,
-				  int atom_index, double * sym_values);
+				  int atom_index, double * sym_values, bool * active);
 
 
   /*
@@ -98,10 +98,10 @@ public:
    *      The symmetric functions per each atom in the original structure.
    * 
    */
-  void GetSymmetricFunctions(Atoms * structure, int Nx, int Ny, int Nz, double * sym_values, int N_types = -1);
+  void GetSymmetricFunctions(Atoms * structure, int Nx, int Ny, int Nz, double * sym_values, bool * active, int N_types = -1);
 
   // The same but selects only a specific atom of the structure
-  void GetSymmetricFunctionsATM(Atoms * structure, int Nx, int Ny, int Nz, double * sym_values, int index, int N_types = -1);
+  void GetSymmetricFunctionsATM(Atoms * structure, int Nx, int Ny, int Nz, double * sym_values, int index, bool * active, int N_types = -1);
 
   /*
    * This method, in a way similar to the previous one, computes the derivatives of the symmetric functions
@@ -122,7 +122,7 @@ public:
    *      The derivatives of each symmetric function with respect to the specified atomic displacement.
    * 
    */
-  void GetDerivatives(Atoms * structure, int Nx, int Ny, int Nz, int atm_index, int cart_coord, double * sym_diff, int N_types = -1);
+  void GetDerivatives(Atoms * structure, int Nx, int Ny, int Nz, int atm_index, int cart_coord, double * sym_diff, bool * active, int N_types = -1);
   
   
   // Add a G2 function

@@ -28,6 +28,7 @@
 #define AN_NTYPES "n_types"
 #define AN_ENVIRON "AtomicNetwork"
 #define AN_TYPELIST "types"
+#define AN_SYM_ACTIVE "active_symfuncs"
 
 // The train methods
 #define AN_TRAINSD "sd"
@@ -49,6 +50,9 @@ private:
     // Do the same with the output energy
     vector<double> output_energy_mean, output_energy_sigma;
     int N_lim;
+
+    // Enable to deactivate some symmetric function to speedup calculation
+    bool * sym_activated;
 
 
 public:

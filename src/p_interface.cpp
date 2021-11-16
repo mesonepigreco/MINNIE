@@ -546,6 +546,7 @@ PyObject* get_symmetric_functions_from_atoms(PyObject * self, PyObject * args) {
     int N_syms, n_types;
     int Nx, Ny, Nz; // The periodic images of the atoms
 
+
     // Parse the python arguments
     if (!PyArg_ParseTuple(args, "OOiiiiO", &symf, &atm, &n_types, &Nx, &Ny, &Nz, &py_output)) {
         cerr << "Error, this function requires 5 arguments" << endl;
@@ -559,11 +560,17 @@ PyObject* get_symmetric_functions_from_atoms(PyObject * self, PyObject * args) {
     N_atoms = atoms->GetNAtoms();
     N_syms = symm_func->GetTotalNSym(n_types);
 
+    bool * active = new bool[N_syms];
+    for (int i = 0; i < N_syms; ++i) active[i] = true;
+
+
     // Allocate the symmfunction arrays
     double * sym_coords = (double*) PyArray_DATA(py_output);
 
     // Calculate the symmetric coordinates
-    symm_func->GetSymmetricFunctions(atoms, Nx, Ny, Nz, sym_coords, n_types);
+    symm_func->GetSymmetricFunctions(atoms, Nx, Ny, Nz, sym_coords, active, n_types);
+
+    delete[] active;
 
     return Py_BuildValue("");
 }
@@ -592,9 +599,13 @@ PyObject* get_symmetric_functions_from_atoms_index(PyObject * self, PyObject * a
     // Allocate the symmfunction arrays
     double * sym_coords = (double*) PyArray_DATA(py_output);
 
-    // Calculate the symmetric coordinates
-    symm_func->GetSymmetricFunctionsATM(atoms, Nx, Ny, Nz, sym_coords, index, n_types);
+    bool * active = new bool[N_syms];
+    for (int i = 0; i < N_syms; ++i) active[i] = true;
 
+    // Calculate the symmetric coordinates
+    symm_func->GetSymmetricFunctionsATM(atoms, Nx, Ny, Nz, sym_coords, index, active, n_types);
+
+    delete[] active;
     return Py_BuildValue("");
 }
 

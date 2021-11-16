@@ -58,7 +58,7 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
     // Get the symmetric functions
     //cout << "Getting symmetric functions..." << endl;
-    symm_f->GetSymmetricFunctions(coords, Nx, Ny, Nz, symm_fynctions, N_types);
+    symm_f->GetSymmetricFunctions(coords, Nx, Ny, Nz, symm_fynctions, sym_activated, N_types);
     //cout << "Symmetric functions obtained." << endl;
 
     int time_pca = 0, time_nnfeatures = 0, time_forces = 0;
@@ -189,7 +189,7 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
 
                 auto t1 = std::chrono::high_resolution_clock::now();
-                symm_f->GetDerivatives(coords, Nx, Ny, Nz, i, x, dG_dX, N_types); // TODO return the list of interacting atoms
+                symm_f->GetDerivatives(coords, Nx, Ny, Nz, i, x, dG_dX, sym_activated, N_types); // TODO return the list of interacting atoms
 
 
                 auto t2 = std::chrono::high_resolution_clock::now();
@@ -307,6 +307,11 @@ void AtomicNetwork::SaveCFG(const char * PREFIX) {
         }
     }
 
+    Setting &cfg_active = PCA.add(AN_SYM_ACTIVE, Setting::TypeArray);
+    for (int i = 0; i < N_syms; ++i) {
+        cfg_active.add(Setting::TypeBoolean) = sym_activated[i];
+    }
+
 
     // Add the symmetry functions
     // Write to the file the main
@@ -410,6 +415,11 @@ void AtomicNetwork::LoadCFG(const char * PREFIX) {
     eigvects = new double[N_lim * N_syms];
     mean_vals = new double[N_lim];
 
+    sym_activated = new bool[N_syms];
+    for (int i = 0; i < N_syms; ++i) sym_activated[i] = true;
+
+
+
     try {
         const Setting& cfg_vals = pca[AN_EIGVALS];
         const Setting& cfg_vect_mean = pca[AN_EIGMEAN];
@@ -426,6 +436,23 @@ void AtomicNetwork::LoadCFG(const char * PREFIX) {
     } catch (const SettingNotFoundException &e) {
         cerr << "Error, keyword " << e.getPath() << " not found" << endl; 
         throw;
+    } catch (const SettingTypeException &e) {
+        cerr << "Error, keyword " << e.getPath() << " has wrong type" << endl;
+        throw;
+    } catch ( const SettingException &e) {
+        cerr << "Error with keyword " << e.getPath() << ". Please, check carefully" << endl;
+        throw;
+    }
+
+
+    try {
+        const Setting& cfg_sym_active = pca[AN_SYM_ACTIVE];
+        for (int i = 0; i < N_syms; ++i) {
+            sym_activated[i] = (bool) cfg_sym_active[i];
+        }
+    } catch (const SettingNotFoundException &e) {
+        cerr << "WARNING, keyword " << e.getPath() << " not found" << endl; 
+        cerr << " Ignoring, probably the cfg file generated with an old version." << endl;
     } catch (const SettingTypeException &e) {
         cerr << "Error, keyword " << e.getPath() << " has wrong type" << endl;
         throw;
@@ -496,6 +523,7 @@ AtomicNetwork::~AtomicNetwork() {
     // Free memory
     delete[] eigvals;
     delete[] eigvects;
+    delete[] sym_activated;
 
     atomic_network.clear();
     atomic_types.clear();
@@ -527,6 +555,9 @@ AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int 
     N_lim = Nlim;
     N_types = ensemble->GetNTyp();
     int N_sym = symf->GetTotalNSym(N_types);
+
+    sym_activated = new bool[N_sym];
+    for (int i = 0; i < N_sym; ++i) sym_activated[i] = true;
 
     if (N_lim > N_sym) {
         N_lim = N_sym;
