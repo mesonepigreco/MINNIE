@@ -3,7 +3,18 @@ from __future__ import division
 
 import numpy as np
 import minnie, minnie.SymmetricFunctions as SF
-import scipy, scipy.optimize
+import scipy, scipy.optimize, scipy.stats
+
+# Override the print function
+from minnie.Parallel import pprint as print
+
+
+try:
+    import matplotlib.pyplot as plt
+    __MATPLOTLIB__ = True 
+except:
+    __MATPLOTLIB__ = False
+
 
 import NNcpp
 
@@ -93,6 +104,41 @@ class AtomicNetwork:
 
         
         NNcpp.SaveNNToCFG(self._minnie, filename)
+    
+    def deactivate_symm_funcs(self, means, cvar_mat, thr = 1e-6, verbose = False):
+        """
+        This functions deactivates the symmetric functions that display a variability of less than 10^-6.
+        By deactivating a symmetric function, the calculation of the loss function, training and energy
+        is speeded up.
+
+        Parameters
+        ----------
+            means : ndarray(size = nsym)
+                The average values of the symmetric functions (result of a pca_analysis of symmetric functions)
+            cvar_mat : ndarray(size = (nsym, nsym))
+                The covariance matrix, the result of the pca_analysis of the symmetric functions.
+            thr: float
+                The value of the fluctuations below which the symmetric function is turned of.
+                The condition to deactivate the i-th symmetric function is that
+                sqrt(cvar_mat[i,i]) < thr
+            verbose : bool
+                If true, prints the number of symmetric function turned off and their percentage
+        """
+
+        
+        nsym, _ = np.shape(cvar_mat)
+        assert nsym == _, "Error, cvar_mat must be a square matrix"
+
+        mask = np.zeros(nsym, dtype = np.intc)
+        mask[:] = np.sqrt(np.diag(cvar_mat)) > thr
+        new_means = np.zeros(nsym, dtype = np.double)
+        new_means[:] = means
+
+        if verbose:
+            nremoved = np.sum(mask)
+            print("Deactivated {} out of {} symmetry functions. Total removed is {} %".format(nremoved, nsym, nremoved * 100. / nsym))
+
+        NNcpp.NN_DeactivateSymFuncs(self._minnie, mask, new_means, nsym)
 
     def get_energy(self, atoms, compute_forces = False, Nx = 3, Ny = 3, Nz = 3):
         """
@@ -312,4 +358,65 @@ class AtomicNetwork:
         biases = res.x[:len_bias].reshape((n_types, n_biases))
         synapsis = res.x[len_bias:].reshape((n_types, n_synapsis))
         self.set_biases_synapsis(biases, synapsis)
+
+    def plot_accuracy(self, test_set, verbose = True, plot = True, save_data = None):
+        """
+        Compute the accuracy of the model.
+        It returns the expected accuracy in energy units for each configuration in the test set.
+
+        Parameters
+        ----------
+            verbose : bool
+                If true, prints the accuracy and the quality of the linear regression on screen
+            plot : bool
+                If true, display the plot on screen (requires matplotlib and a X screen connected)
+            save_data : string
+                Path to the file on which the scatter plot is saved.
+                If None, data are not saved.
+
+        Results
+        -------
+            accuracy : float
+                The accuracy in energy units expected for each configuration of the test_set
+        """
+
+        data = np.zeros( (test_set.get_n_configs(), 2), dtype = np.double)
+
+        for i in range(test_set.get_n_configs()):
+            data[i,0], _ = test_set.get_energy_forces(i)
+            data[i,1] = self.get_energy(test_set.get_configuration(i))
+        
+        if save_data is not None:
+            np.savetxt(save_data, data, header = "Test set energies; NN Prediction energies")
+
+        # Compute the accuracy
+        accuracy = np.std(data[:,0] - data[:,1])
+
+        if verbose:
+            print("The measured accuracy is: {} units".format(accuracy))
+
+        if plot:
+            plt.scatter(data[:,0], data[:,1])
+            plt.xlabel("Reference energy")
+            plt.ylabel("Guess energy")
+
+            lr = scipy.stats.linregress(data[:,0], data[:,1])
+            _x_ = np.linspace(np.min(data[:,0]), np.max(data[:,0]), 1000)
+            plt.plot(_x_, lr.slope * _x_ + lr.intercept, ls = "--", color = "k")
+
+            if verbose:
+                print("FIT results: (y = mx + q)")
+                print("             m = {:16.8f}".format(lr.slope))
+                print("             q = {:16.8f}".format(lr.intercept))
+                print(" R-value : {}   P-value: {}".format(lr.rvalue, lr.pvalue))
+                print()
+
+            plt.tight_layout()
+            plt.show()
+
+        return accuracy
+
+
+
+
 

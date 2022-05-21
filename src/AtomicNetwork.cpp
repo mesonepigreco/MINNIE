@@ -3,9 +3,14 @@
 #include <math.h>
 #include <chrono>
 #include <stdlib.h>
+#ifdef _MPI
+#include <mpi.h>
+#endif
+
 
 // A debugging flag
 #define AN_DEB 0
+#define TIME_LOSS 0
 #define TIME_GET_ENERGY 0
 #define ATOM_TEST_ID 0
 
@@ -53,7 +58,9 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
     // Get the symmetric functions
     //cout << "Getting symmetric functions..." << endl;
-    symm_f->GetSymmetricFunctions(coords, Nx, Ny, Nz, symm_fynctions, N_types);
+    symm_f->GetSymmetricFunctions(coords, Nx, Ny, Nz, symm_fynctions, sym_activated, N_types);
+
+
     //cout << "Symmetric functions obtained." << endl;
 
     int time_pca = 0, time_nnfeatures = 0, time_forces = 0;
@@ -68,6 +75,12 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
                 printf("# SYM F [%d] of atom %d is : %.8e\n", k, i, symm_fynctions[N_sym*i + k]);
         }
         auto t1 = std::chrono::high_resolution_clock::now();
+
+        // Fill all the deactivated symmetries with their average value
+        for (int j = 0; j < N_sym; ++j) {
+            if (sym_activated[i]) continue;
+            symm_fynctions[N_sym * i + j] = average_symfuncs[j];
+        }
 
 
         // Apply the PCA representation
@@ -184,7 +197,7 @@ double AtomicNetwork::GetEnergy(Atoms * coords, double * forces, int Nx, int Ny,
 
 
                 auto t1 = std::chrono::high_resolution_clock::now();
-                symm_f->GetDerivatives(coords, Nx, Ny, Nz, i, x, dG_dX, N_types); // TODO return the list of interacting atoms
+                symm_f->GetDerivatives(coords, Nx, Ny, Nz, i, x, dG_dX, sym_activated, N_types); // TODO return the list of interacting atoms
 
 
                 auto t2 = std::chrono::high_resolution_clock::now();
@@ -302,6 +315,17 @@ void AtomicNetwork::SaveCFG(const char * PREFIX) {
         }
     }
 
+    Setting &cfg_active = PCA.add(AN_SYM_ACTIVE, Setting::TypeArray);
+    for (int i = 0; i < N_syms; ++i) {
+        cfg_active.add(Setting::TypeBoolean) = sym_activated[i];
+    }
+
+    Setting &cfg_sfa = PCA.add(AN_SYM_AVERAGE, Setting::TypeArray);
+    for (int i = 0; i < N_syms; ++i) {
+        cfg_sfa.add(Setting::TypeFloat) = average_symfuncs[i];
+    }
+    
+
 
     // Add the symmetry functions
     // Write to the file the main
@@ -405,6 +429,15 @@ void AtomicNetwork::LoadCFG(const char * PREFIX) {
     eigvects = new double[N_lim * N_syms];
     mean_vals = new double[N_lim];
 
+    sym_activated = new bool[N_syms];
+    average_symfuncs = new double[N_syms];
+    for (int i = 0; i < N_syms; ++i) {
+        sym_activated[i] = true;
+        average_symfuncs[i] = 0;
+    }
+
+
+
     try {
         const Setting& cfg_vals = pca[AN_EIGVALS];
         const Setting& cfg_vect_mean = pca[AN_EIGMEAN];
@@ -421,6 +454,38 @@ void AtomicNetwork::LoadCFG(const char * PREFIX) {
     } catch (const SettingNotFoundException &e) {
         cerr << "Error, keyword " << e.getPath() << " not found" << endl; 
         throw;
+    } catch (const SettingTypeException &e) {
+        cerr << "Error, keyword " << e.getPath() << " has wrong type" << endl;
+        throw;
+    } catch ( const SettingException &e) {
+        cerr << "Error with keyword " << e.getPath() << ". Please, check carefully" << endl;
+        throw;
+    }
+
+
+    try {
+        const Setting& cfg_sym_active = pca[AN_SYM_ACTIVE];
+        for (int i = 0; i < N_syms; ++i) {
+            sym_activated[i] = (bool) cfg_sym_active[i];
+        }
+    } catch (const SettingNotFoundException &e) {
+        cerr << "WARNING, keyword " << e.getPath() << " not found" << endl; 
+        cerr << " Ignoring, probably the cfg file generated with an old version." << endl;
+    } catch (const SettingTypeException &e) {
+        cerr << "Error, keyword " << e.getPath() << " has wrong type" << endl;
+        throw;
+    } catch ( const SettingException &e) {
+        cerr << "Error with keyword " << e.getPath() << ". Please, check carefully" << endl;
+        throw;
+    }
+    try {
+        const Setting& cfg_symav = pca[AN_SYM_AVERAGE];
+        for (int i = 0; i < N_syms; ++i) {
+            average_symfuncs[i] = (bool) cfg_symav[i];
+        }
+    } catch (const SettingNotFoundException &e) {
+        cerr << "WARNING, keyword " << e.getPath() << " not found" << endl; 
+        cerr << " Ignoring, probably the cfg file generated with an old version." << endl;
     } catch (const SettingTypeException &e) {
         cerr << "Error, keyword " << e.getPath() << " has wrong type" << endl;
         throw;
@@ -491,6 +556,7 @@ AtomicNetwork::~AtomicNetwork() {
     // Free memory
     delete[] eigvals;
     delete[] eigvects;
+    delete[] sym_activated;
 
     atomic_network.clear();
     atomic_types.clear();
@@ -522,6 +588,9 @@ AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int 
     N_lim = Nlim;
     N_types = ensemble->GetNTyp();
     int N_sym = symf->GetTotalNSym(N_types);
+
+    sym_activated = new bool[N_sym];
+    for (int i = 0; i < N_sym; ++i) sym_activated[i] = true;
 
     if (N_lim > N_sym) {
         N_lim = N_sym;
@@ -568,6 +637,10 @@ AtomicNetwork::AtomicNetwork(SymmetricFunctions* symf, Ensemble * ensemble, int 
     eigvals = new double[N_lim];
     eigvects = new double[N_lim * N_sym];
     mean_vals = new double[N_lim];
+    average_symfuncs = new double[N_sym];
+
+    for (int i =0; i < N_sym; ++i) average_symfuncs[i] = means[i];
+
 
     // Perform the PCA
     Diagonalize(cvar_mat, N_sym, tmp_eigvals, tmp_eigvects);
@@ -675,7 +748,7 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
     } 
 
 
-    double loss = 0;
+    double loss = 0, partial_loss = 0;
     double energy = 0;
     double * forces = NULL;
     Atoms * config;
@@ -694,7 +767,43 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
     double * forces_ptr = NULL;
     if (weight_forces > 1e-6) forces_ptr = forces;
 
-    for (int i = 0; i < n_conf; ++i) {
+    double ** tmp_grad_biases = (double**) malloc(sizeof(double*) * N_types);
+    double **tmp_grad_sinapsis = (double**) malloc(sizeof(double*) * N_types);
+
+
+    // SET GRAD BIASES AND SINAPSIS TO ZERO
+    for (int i = 0; i < N_types; ++i) {
+        tmp_grad_biases[i] = new double[GetNNFromElement(i)->get_nbiases()];
+        tmp_grad_sinapsis[i] = new double[GetNNFromElement(i)->get_nsinapsis()];
+        for (int j = 0; j < GetNNFromElement(i)->get_nbiases(); ++j) tmp_grad_biases[i][j] = 0;
+        for (int j = 0; j < GetNNFromElement(i)->get_nsinapsis(); ++j) tmp_grad_sinapsis[i][j] = 0;
+    }
+
+    int size = 1, rank = 0;
+	#ifdef _MPI
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	#endif
+    
+	// Get each pool of configurations over different processors (if MPI)
+	int count = n_configs / size;
+	int remainer = n_configs % size;
+    int start, stop;
+
+	// Distribute the remainers in a clever way
+	// To get the most efficient parallelization
+	// Dividing the remainers in the first remainer processors
+	if (rank < remainer) {
+		start = rank * (count + 1);
+		stop = start + count + 1;
+	} else {
+		start = rank * count + remainer;
+		stop = start + count;
+	}
+
+    //cout << "RANK " << rank << " from " << start << " to " << stop << endl;
+
+    for (int i = start; i < stop; ++i) {
         // Get the current atomic configuration from the ensemble
         auto t1 = std::chrono::high_resolution_clock::now();
         training_set->GetConfig(offset + i, config);
@@ -703,15 +812,15 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
         energy = training_set->GetEnergy(i);
         auto t3 = std::chrono::high_resolution_clock::now();
 
-        energy = GetEnergy(config, forces_ptr, training_set->N_x, training_set->N_y, training_set->N_z, grad_biases, grad_sinapsis, energy);
+        energy = GetEnergy(config, forces_ptr, training_set->N_x, training_set->N_y, training_set->N_z, tmp_grad_biases, tmp_grad_sinapsis, energy);
 
         auto t4 = std::chrono::high_resolution_clock::now();
         // Get the loss function
-        loss += weight_energy *(energy - training_set->GetEnergy(i) )*(energy - training_set->GetEnergy(i)) / (config->GetNAtoms());
+        partial_loss += weight_energy *(energy - training_set->GetEnergy(i) )*(energy - training_set->GetEnergy(i)) / (config->GetNAtoms());
 
         if (weight_forces > 1e-6) {
             for (int j = 0; j < config->GetNAtoms() * 3; ++j) {
-                loss += weight_forces * (forces[j] - training_set->GetForce(i, j/3, j%3))* (forces[j] - training_set->GetForce(i, j/3, j%3))/ (config->GetNAtoms());
+                partial_loss += weight_forces * (forces[j] - training_set->GetForce(i, j/3, j%3))* (forces[j] - training_set->GetForce(i, j/3, j%3))/ (config->GetNAtoms());
             }
         }
         auto t5 = std::chrono::high_resolution_clock::now();
@@ -721,12 +830,31 @@ double AtomicNetwork::GetLossGradient(Ensemble * training_set, double weight_ene
         getenergynn_ns +=  std::chrono::duration_cast<std::chrono::milliseconds>(t4-t3).count();
         getloss_ns +=  std::chrono::duration_cast<std::chrono::nanoseconds>(t5-t4).count();
     }
+    //cout << "RANK " << rank << " partial loss " << partial_loss<< endl;
 
-    cout << "    [TIMING LOSS]" << endl;
-    cout << "       Get configuration: " << fixed << getconf_ns / 1000000. << " ms" << endl;
-    cout << "       Get energy of configuration: " << fixed << getenergyc_ns / 1000000. << " ms" << endl;
-    cout << "       Get energy of NN: " << fixed << getenergynn_ns << " ms" << endl;
-    cout << "       Compute the loss function: " << fixed << getloss_ns / 1000000. << " ms" << endl;
+
+	// Sum back the computation from different processors
+	#ifdef _MPI 
+	MPI_Allreduce(&partial_loss, &loss, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    for (int i = 0; i < N_types; ++i) {
+        MPI_Allreduce(tmp_grad_biases[i], grad_biases[i], GetNNFromElement(i)->get_nbiases(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(tmp_grad_sinapsis[i], grad_sinapsis[i], GetNNFromElement(i)->get_nsinapsis(), MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    }
+    #else
+    for (int i = 0; i < N_types; ++i) {
+        for (int j = 0; j < GetNNFromElement(i)->get_nbiases(); ++j) grad_biases[i][j] = tmp_grad_biases[i][j];
+        for (int j = 0; j < GetNNFromElement(i)->get_nsinapsis(); ++j) grad_sinapsis[i][j] = tmp_grad_sinapsis[i][j];
+    }
+    loss = partial_loss;
+	#endif 
+
+    if (rank == 0 && TIME_LOSS) {
+        cout << "    [TIMING LOSS]" << endl;
+        cout << "       Get configuration: " << fixed << getconf_ns / 1000000. << " ms" << endl;
+        cout << "       Get energy of configuration: " << fixed << getenergyc_ns / 1000000. << " ms" << endl;
+        cout << "       Get energy of NN: " << fixed << getenergynn_ns << " ms" << endl;
+        cout << "       Compute the loss function: " << fixed << getloss_ns / 1000000. << " ms" << endl;
+    }
 
     // Divide the gradient of biases and synapsis on the number of configurations
     for (int i = 0; i < N_types; ++i) {
@@ -764,6 +892,7 @@ void AtomicNetwork::TrainNetwork(Ensemble * training_set, string method, double 
 
     double total_gradient = 0;
     double T_cooling = 1 - 1 / (double) N_steps;
+    
 
     // Check the minimization method
     if (method == AN_TRAINSD) {

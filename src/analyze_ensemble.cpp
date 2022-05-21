@@ -204,7 +204,7 @@ bool AnalyzeSymmetries(const char * config_file) {
 }
 
 void PrintSymmetricFunctions(string file_path, SymmetricFunctions * symf, Ensemble * ens,
-                            int Nx, int Ny, int Nz) {
+                            int Nx, int Ny, int Nz, bool * active) {
     ofstream of(file_path + "/symmetric_functions.dat");
     double * sym_values;
     if (!of) {
@@ -215,6 +215,15 @@ void PrintSymmetricFunctions(string file_path, SymmetricFunctions * symf, Ensemb
 
     // Print decimal with 8 positions
     of << fixed << setprecision(8);
+    bool *myactive;
+    if (active == NULL) {
+        int ns = symf->GetTotalNSym(ens->GetNTyp());
+        
+        myactive = new bool[ns];
+        for (int i = 0; i < ns; ++i) myactive[i] = true;
+    }
+    else 
+        myactive = active;
 
     Atoms * atm;
     int N_syms;
@@ -226,7 +235,7 @@ void PrintSymmetricFunctions(string file_path, SymmetricFunctions * symf, Ensemb
         sym_values = new double[N_syms];
 
         // Get the symmetric functions for the given structure
-        symf->GetSymmetricFunctions(atm, Nx, Ny, Nz, sym_values, -1); 
+        symf->GetSymmetricFunctions(atm, Nx, Ny, Nz, sym_values, myactive, -1); 
 
         // Print the values of the symmetric functions in the file
         of << i;
@@ -237,6 +246,7 @@ void PrintSymmetricFunctions(string file_path, SymmetricFunctions * symf, Ensemb
         // Free the memory
         delete[] sym_values;
     }
+    if (active == NULL) delete[] myactive;
     of.close();
 }
 // TO BE CORRECTED, THE NUMBER OF ATOMS MAY CHANGE IN THE ENSEMBLE
@@ -301,8 +311,8 @@ bool AddG2Function(SymmetricFunctions * symf, Ensemble * ensemble, int Nx, int N
  */
 
 
-void GetCovarianceSymmetry(Ensemble * ens, SymmetricFunctions* symmf, int Nx, int Ny, int Nz, 
-                            double * means, double * cov_mat) {
+void GetCovarianceSymmetry(Ensemble * ens, SymmetricFunctions* symmf, int Nx, int Ny, int Nz,
+                            double * means, double * cov_mat, bool * active) {
 
     int nat_tot = 0;
     int ntyp = ens->GetNTyp();
@@ -321,6 +331,15 @@ void GetCovarianceSymmetry(Ensemble * ens, SymmetricFunctions* symmf, int Nx, in
     for (int i = 0; i < N_sym_tot; ++i) means[i] = 0;
     for (int i = 0; i < N_sym_tot * N_sym_tot; ++i) cov_mat[i] = 0;
 
+    bool *myactive;
+    if (active == NULL) {
+        int ns = symmf->GetTotalNSym(ens->GetNTyp());
+        
+        myactive = new bool[ns];
+        for (int i = 0; i < ns; ++i) myactive[i] = true;
+    }
+    else 
+        myactive = active;
 
     Atoms * config;
     for (int k = 0; k < ens->GetNConfigs(); ++k) {
@@ -336,7 +355,7 @@ void GetCovarianceSymmetry(Ensemble * ens, SymmetricFunctions* symmf, int Nx, in
 
         // Get the symmetric functions for this configuration
         sym_values = new double[N_sym_tot*N_atoms];
-        symmf->GetSymmetricFunctions(config, Nx, Ny, Nz, sym_values, -1);
+        symmf->GetSymmetricFunctions(config, Nx, Ny, Nz, sym_values, myactive, -1);
 
 
         // Cycle over the atoms
@@ -372,6 +391,7 @@ void GetCovarianceSymmetry(Ensemble * ens, SymmetricFunctions* symmf, int Nx, in
         delete[] sym_values;
     }
     cout << "Averages computed." << endl;
+    if (active == NULL) delete[] myactive;
 
     
     for (int i = 0; i < N_sym_tot; ++i) 
@@ -406,7 +426,7 @@ void GetCovarianceSymmetry(Ensemble * ens, SymmetricFunctions* symmf, int Nx, in
 }
 
 
-void AnalyzeForces(string anal_path, Ensemble * ensemble, SymmetricFunctions* symm_func, int Nx, int Ny, int Nz) {
+void AnalyzeForces(string anal_path, Ensemble * ensemble, SymmetricFunctions* symm_func, int Nx, int Ny, int Nz, bool * active) {
     // Get all the symmetric functions
 
     double ** total_sym_functions;
@@ -437,6 +457,16 @@ void AnalyzeForces(string anal_path, Ensemble * ensemble, SymmetricFunctions* sy
     file << "# Symm func dist; Force; config1; atom1; config2; atom2" << endl;
     file << setprecision(8) << scientific;
 
+    bool *myactive;
+    if (active == NULL) {
+        int ns = symm_func->GetTotalNSym(ensemble->GetNTyp());
+        
+        myactive = new bool[ns];
+        for (int i = 0; i < ns; ++i) myactive[i] = true;
+    }
+    else 
+        myactive = active;
+
     // Compute the symmetric functions
     for (int i = 0; i < N_configs; ++i) {
         // Get the atomic configuration
@@ -446,7 +476,7 @@ void AnalyzeForces(string anal_path, Ensemble * ensemble, SymmetricFunctions* sy
 
 
         total_sym_functions[i] = new double[N_sym * N_atoms];
-        symm_func->GetSymmetricFunctions(config, Nx, Ny, Nz, total_sym_functions[i], -1);
+        symm_func->GetSymmetricFunctions(config, Nx, Ny, Nz, total_sym_functions[i], myactive, -1);
 
         for (int j = 0; j <= i; ++j) {
             nat_j = config->GetNAtoms();
@@ -473,6 +503,7 @@ void AnalyzeForces(string anal_path, Ensemble * ensemble, SymmetricFunctions* sy
             }
         }
     }
+    if (active == NULL) delete[] myactive;
 
     // Free memory
     for (int i = 0; i < N_configs; ++i) delete[] total_sym_functions[i];

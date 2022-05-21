@@ -12,6 +12,10 @@
 
 #include <string>
 
+#ifdef _MPI
+#include<mpi.h>
+#endif
+
 using namespace std;
 
 
@@ -55,8 +59,12 @@ PyObject * nn_get_ntypes(PyObject * self, PyObject * args);
 PyObject * nn_get_nbiases_nsynapsis(PyObject * self, PyObject * args);
 PyObject * nn_get_biases_synapsis(PyObject * self, PyObject * args);
 PyObject * nn_set_biases_synapsis(PyObject * self, PyObject * args);
+PyObject * nn_deactivate_symfunc(PyObject * self, PyObject * args);
 PyObject * ensemble_get_energy_force(PyObject * self, PyObject * args);
 PyObject * ensemble_shuffle(PyObject * self, PyObject * args);
+PyObject * mpi_init(PyObject * self, PyObject * args);
+PyObject * mpi_get_rank_size(PyObject * self, PyObject * args);
+
 // Define the name for the capsules
 #define NAME_SYMFUNC "symmetry_functions"
 #define NAME_ANN "atomic_neural_networks"
@@ -102,8 +110,11 @@ static PyMethodDef Methods[] = {
     {"NN_GetNBiasesSynapsis", nn_get_nbiases_nsynapsis, METH_VARARGS, "Get the number of biases and synaptics in a network"},
     {"NN_GetBiasesSynapsis", nn_get_biases_synapsis, METH_VARARGS, "Get the biases and synaptics in all the atomic networks"},
     {"NN_SetBiasesSynapsis", nn_set_biases_synapsis, METH_VARARGS, "Set the biases and synaptics in all the atomic networks"},
+    {"NN_DeactivateSymFuncs", nn_deactivate_symfunc, METH_VARARGS, "Deactivate some of the symmetric functions"},
     {"Ensemble_GetEnergyForces", ensemble_get_energy_force, METH_VARARGS, "Get the energy and forces for a configuration of the ensemble"},
     {"Ensemble_Shuffle", ensemble_shuffle, METH_VARARGS, "Get the energy and forces for a configuration of the ensemble"},
+    {"MPI_init", mpi_init, METH_VARARGS, "Initialize the parallel environment"},
+    {"MPI_get_rank_size", mpi_get_rank_size, METH_VARARGS, "Get the MPI rank and size"},
     {NULL, NULL, 0, NULL}
 };
 
@@ -537,6 +548,7 @@ PyObject* get_symmetric_functions_from_atoms(PyObject * self, PyObject * args) {
     int N_syms, n_types;
     int Nx, Ny, Nz; // The periodic images of the atoms
 
+
     // Parse the python arguments
     if (!PyArg_ParseTuple(args, "OOiiiiO", &symf, &atm, &n_types, &Nx, &Ny, &Nz, &py_output)) {
         cerr << "Error, this function requires 5 arguments" << endl;
@@ -550,11 +562,17 @@ PyObject* get_symmetric_functions_from_atoms(PyObject * self, PyObject * args) {
     N_atoms = atoms->GetNAtoms();
     N_syms = symm_func->GetTotalNSym(n_types);
 
+    bool * active = new bool[N_syms];
+    for (int i = 0; i < N_syms; ++i) active[i] = true;
+
+
     // Allocate the symmfunction arrays
     double * sym_coords = (double*) PyArray_DATA(py_output);
 
     // Calculate the symmetric coordinates
-    symm_func->GetSymmetricFunctions(atoms, Nx, Ny, Nz, sym_coords, n_types);
+    symm_func->GetSymmetricFunctions(atoms, Nx, Ny, Nz, sym_coords, active, n_types);
+
+    delete[] active;
 
     return Py_BuildValue("");
 }
@@ -583,9 +601,13 @@ PyObject* get_symmetric_functions_from_atoms_index(PyObject * self, PyObject * a
     // Allocate the symmfunction arrays
     double * sym_coords = (double*) PyArray_DATA(py_output);
 
-    // Calculate the symmetric coordinates
-    symm_func->GetSymmetricFunctionsATM(atoms, Nx, Ny, Nz, sym_coords, index, n_types);
+    bool * active = new bool[N_syms];
+    for (int i = 0; i < N_syms; ++i) active[i] = true;
 
+    // Calculate the symmetric coordinates
+    symm_func->GetSymmetricFunctionsATM(atoms, Nx, Ny, Nz, sym_coords, index, active, n_types);
+
+    delete[] active;
     return Py_BuildValue("");
 }
 
@@ -1093,6 +1115,30 @@ PyObject * nn_set_biases_synapsis(PyObject * self, PyObject * args) {
 }
 
 
+PyObject * nn_deactivate_symfunc(PyObject * self, PyObject * args) {
+    PyObject * py_ann;
+    PyArrayObject * py_mask, *py_average;
+    int nsyms;
+    int * mask;
+
+    if (!PyArg_ParseTuple(args, "OOOi", &py_ann, &py_mask, &py_average, &nsyms)) {
+        cerr << "Error, this function requires 1 arguments" << endl;
+        cerr << "Error in file " << __FILE__ << " at line " << __LINE__ << endl;
+        return NULL;
+    }
+
+    AtomicNetwork * ann = (AtomicNetwork*) PyCapsule_GetPointer(py_ann, NAME_ANN);
+    mask = (int*) PyArray_DATA(py_mask);
+    double * av = (double*) PyArray_DATA(py_average);
+
+    for (int i = 0; i < nsyms; ++i) {
+        ann->sym_activated[i] = (bool) mask[i];
+        ann->average_symfuncs[i] = av[i];
+    }
+
+    return Py_BuildValue("");
+}
+
 
 PyObject * ensemble_get_energy_force(PyObject * self, PyObject * args) {
     PyObject * py_ens;
@@ -1134,4 +1180,27 @@ PyObject * ensemble_shuffle(PyObject * self, PyObject * args) {
     ens->Shuffle();
 
     return Py_BuildValue("");
+}
+
+PyObject * mpi_init(PyObject * self, PyObject * args) {
+
+    #ifdef _MPI
+    int initialized = MPI_Initialized(NULL);
+    if (!initialized)
+        MPI_Init(NULL, NULL);
+    #endif
+
+    return Py_BuildValue("");
+}
+
+
+PyObject * mpi_get_rank_size(PyObject * self, PyObject * args) {
+
+    int rank= 0, size = 1;
+    #ifdef _MPI
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    #endif
+
+    return Py_BuildValue("ii", rank, size);
 }
